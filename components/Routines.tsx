@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { Routine, Exercise, RoutineExercise, MuscleGroup, Equipment } from '../types';
 import { useExercises } from '../hooks/useExercises';
+import DragHandleIcon from './icons/DragHandleIcon';
 
 interface RoutinesProps {
     onStartWorkout: (routine: Routine) => void;
@@ -20,6 +21,10 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
     // State for exercise picker
     const [exerciseSearch, setExerciseSearch] = useState('');
     const [equipmentFilter, setEquipmentFilter] = useState<Equipment | 'all'>('all');
+
+    // State for drag and drop
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
     const handleSaveRoutine = () => {
         if (!isEditing || !isEditing.name.trim()) {
@@ -114,6 +119,32 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
 
     const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => event.target.select();
 
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragEnter = (index: number) => {
+        if (index !== draggedIndex) {
+            setDragOverIndex(index);
+        }
+    };
+
+    const handleDrop = (dropIndex: number) => {
+        if (draggedIndex === null || draggedIndex === dropIndex || !isEditing) return;
+
+        const newExercises = [...isEditing.exercises];
+        const [draggedItem] = newExercises.splice(draggedIndex, 1);
+        newExercises.splice(dropIndex, 0, draggedItem);
+
+        setIsEditing({ ...isEditing, exercises: newExercises });
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
+        setDragOverIndex(null);
+    };
+
     const filteredExercises = useMemo(() => {
         const lowerCaseSearch = exerciseSearch.toLowerCase();
         return allExercises.filter(ex => {
@@ -153,9 +184,25 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
                         const exercise = findExerciseById(exConfig.exerciseId);
                         if (!exercise) return null;
                         return (
-                            <div key={exConfig.exerciseId} className="bg-surface/80 p-4 rounded-lg space-y-3 shadow-md">
+                            <div 
+                                key={exConfig.exerciseId}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, exIndex)}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDragEnter={() => handleDragEnter(exIndex)}
+                                onDragLeave={() => setDragOverIndex(null)}
+                                onDrop={() => handleDrop(exIndex)}
+                                onDragEnd={handleDragEnd}
+                                className={`bg-surface/80 p-4 rounded-lg space-y-3 shadow-md cursor-grab transition-all duration-200 
+                                    ${draggedIndex === exIndex ? 'opacity-50 shadow-2xl scale-105' : ''}
+                                    ${dragOverIndex === exIndex ? 'outline-2 outline-dashed outline-primary -outline-offset-2' : ''}
+                                `}
+                            >
                                 <div className="flex justify-between items-center">
-                                    <h4 className="font-semibold text-lg text-text-primary">{exercise.name}</h4>
+                                    <div className="flex items-center gap-3">
+                                        <DragHandleIcon className="w-5 h-5 text-text-secondary flex-shrink-0" />
+                                        <h4 className="font-semibold text-lg text-text-primary">{exercise.name}</h4>
+                                    </div>
                                     <button onClick={() => removeExerciseFromRoutine(exConfig.exerciseId)} className="text-red-400 hover:text-red-500 transition-colors text-sm">Remove</button>
                                 </div>
                                 {exConfig.sets.map((set, setIndex) => (

@@ -4,6 +4,7 @@ import { Routine, PerformedExercise, WorkoutSession, Exercise, MuscleGroup, Equi
 import { useExercises } from '../hooks/useExercises';
 import StopwatchIcon from './icons/StopwatchIcon';
 import CheckIcon from './icons/CheckIcon';
+import DragHandleIcon from './icons/DragHandleIcon';
 
 interface ActiveWorkoutProps {
     routine: Routine;
@@ -67,6 +68,10 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
     const [newExercise, setNewExercise] = useState({ name: '', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Barbell });
     const [exerciseSearch, setExerciseSearch] = useState('');
     const [equipmentFilter, setEquipmentFilter] = useState<Equipment | 'all'>('all');
+
+    // State for drag and drop
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -176,7 +181,11 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
             return originalEx.sets.length !== pEx.sets.length;
         });
 
-        if (hasNewExercises || hasSetCountChanges) {
+        const originalExerciseOrder = routine.exercises.map(ex => ex.exerciseId);
+        const currentExerciseOrder = performedExercises.map(ex => ex.exerciseId);
+        const hasOrderChanged = JSON.stringify(originalExerciseOrder) !== JSON.stringify(currentExerciseOrder);
+
+        if (hasNewExercises || hasSetCountChanges || hasOrderChanged) {
             setIsConfirmingFinish(true);
         } else {
             saveSessionAndFinish();
@@ -242,6 +251,32 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
 
     const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => event.target.select();
 
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragEnter = (index: number) => {
+        if (index !== draggedIndex) {
+            setDragOverIndex(index);
+        }
+    };
+
+    const handleDrop = (dropIndex: number) => {
+        if (draggedIndex === null || draggedIndex === dropIndex) return;
+        setPerformedExercises(prev => {
+            const newExercises = [...prev];
+            const [draggedItem] = newExercises.splice(draggedIndex, 1);
+            newExercises.splice(dropIndex, 0, draggedItem);
+            return newExercises;
+        });
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
+        setDragOverIndex(null);
+    };
+
     const filteredExercises = useMemo(() => {
         const lowerCaseSearch = exerciseSearch.toLowerCase();
         const currentExerciseIds = new Set(performedExercises.map(e => e.exerciseId));
@@ -263,80 +298,103 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
 
 
     return (
-        <div className="flex flex-col h-screen">
-            <header className="p-4">
-                 <div className="flex justify-between items-center">
-                    <h1 className="text-2xl font-bold">{routine.name}</h1>
-                    <div className="flex items-center gap-2 bg-surface px-3 py-1 rounded-full text-lg">
-                        <StopwatchIcon className="w-5 h-5" />
-                        <span>{formatDuration(duration)}</span>
-                    </div>
-                </div>
-            </header>
-
-            <main className="flex-1 overflow-y-auto px-4 space-y-4 pb-4">
-                {performedExercises.map((pEx, exIndex) => (
-                    <div key={pEx.exerciseId} className="bg-surface p-4 rounded-lg shadow-md">
-                        <h3 className="text-lg font-bold mb-3">{pEx.exerciseName}</h3>
-                        <div className="grid grid-cols-[2rem_1fr_1fr_3rem] gap-x-3 text-center text-text-secondary text-sm mb-2">
-                            <span>Set</span>
-                            <span>Weight (kg)</span>
-                            <span>Reps</span>
-                            <span>Done</span>
+        <>
+            {/* Scrollable content area */}
+            <div className="pb-40"> {/* Padding at the bottom to make space for the fixed footer */}
+                <header className="sticky top-0 z-10 p-4 bg-background/90 backdrop-blur-sm border-b border-surface">
+                    <div className="flex justify-between items-center max-w-3xl mx-auto">
+                        <h1 className="text-2xl font-bold truncate pr-2">{routine.name}</h1>
+                        <div className="flex items-center flex-shrink-0 gap-2 bg-surface px-3 py-1 rounded-full text-lg">
+                            <StopwatchIcon className="w-5 h-5" />
+                            <span>{formatDuration(duration)}</span>
                         </div>
-                        {pEx.sets.map((set, setIndex) => (
-                            <React.Fragment key={set.id}>
-                                <div className="grid grid-cols-[2rem_1fr_1fr_3rem] gap-x-3 items-center mb-2">
-                                    <span className="text-center font-bold text-text-secondary">{setIndex + 1}</span>
-                                    <input 
-                                        type="number" 
-                                        step="0.5"
-                                        min="0"
-                                        max="1000"
-                                        value={set.weight}
-                                        onChange={(e) => updateSet(exIndex, setIndex, 'weight', e.target.value)}
-                                        onFocus={handleFocus}
-                                        disabled={set.isCompleted}
-                                        className={`bg-background text-center rounded p-2 w-full min-w-0 transition-colors ${set.isCompleted ? 'line-through text-text-secondary' : 'text-text-primary'}`}
-                                    />
-                                    <input 
-                                        type="number"
-                                        min="1"
-                                        max="50"
-                                        value={set.reps}
-                                        onChange={(e) => updateSet(exIndex, setIndex, 'reps', e.target.value)}
-                                        onFocus={handleFocus}
-                                        disabled={set.isCompleted}
-                                        className={`bg-background text-center rounded p-2 w-full min-w-0 transition-colors ${set.isCompleted ? 'line-through text-text-secondary' : 'text-text-primary'}`}
-                                    />
-                                    <button 
-                                        onClick={() => toggleSetCompletion(exIndex, setIndex)} 
-                                        aria-label={`Mark set ${setIndex + 1} as ${set.isCompleted ? 'incomplete' : 'complete'}`}
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 mx-auto focus:outline-none focus:ring-2 focus:ring-primary/50 ${
-                                            set.isCompleted ? 'bg-tertiary' : 'border-2 border-gray-600 hover:bg-gray-700'
-                                        }`}
-                                    >
-                                        {set.isCompleted && <CheckIcon className="w-5 h-5 text-background" />}
-                                    </button>
-                                </div>
-                                {set.lastPerformed && !set.isCompleted && (
-                                    <div className="text-right text-xs text-text-secondary pr-12 -mt-1 mb-2">
-                                        Last: {set.lastPerformed}
-                                    </div>
-                                )}
-                            </React.Fragment>
-                        ))}
-                        <button onClick={() => addSet(exIndex)} className="w-full bg-primary/20 text-primary p-2 rounded-lg mt-3 font-semibold hover:bg-primary/30 transition-colors">Add Set</button>
                     </div>
-                ))}
-                <button onClick={() => setIsPickerOpen(true)} className="w-full bg-secondary/20 text-secondary p-3 rounded-lg font-semibold hover:bg-secondary/30 transition-colors">
-                    + Add Exercise
-                </button>
-            </main>
-            <footer className="p-4 bg-background/80 backdrop-blur-sm border-t border-surface mt-auto">
-                <button onClick={handleAttemptFinish} className="w-full bg-tertiary p-3 rounded-lg font-bold text-lg hover:bg-tertiary/90 transition-colors">
-                    Finish Workout
-                </button>
+                </header>
+
+                <main className="px-4 space-y-4 mt-4 max-w-3xl mx-auto">
+                    {performedExercises.map((pEx, exIndex) => (
+                        <div 
+                            key={pEx.exerciseId}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, exIndex)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDragEnter={() => handleDragEnter(exIndex)}
+                            onDragLeave={() => setDragOverIndex(null)}
+                            onDrop={() => handleDrop(exIndex)}
+                            onDragEnd={handleDragEnd}
+                            className={`bg-surface p-4 rounded-lg shadow-md cursor-grab transition-all duration-200 
+                                ${draggedIndex === exIndex ? 'opacity-50 shadow-2xl scale-105' : ''}
+                                ${dragOverIndex === exIndex ? 'outline-2 outline-dashed outline-primary -outline-offset-2' : ''}
+                            `}
+                        >
+                            <div className="flex items-center gap-3 mb-3">
+                                <DragHandleIcon className="w-5 h-5 text-text-secondary flex-shrink-0" />
+                                <h3 className="text-lg font-bold">{pEx.exerciseName}</h3>
+                            </div>
+                            <div className="grid grid-cols-[2rem_1fr_1fr_3rem] gap-x-3 text-center text-text-secondary text-sm mb-2">
+                                <span>Set</span>
+                                <span>Weight (kg)</span>
+                                <span>Reps</span>
+                                <span>Done</span>
+                            </div>
+                            {pEx.sets.map((set, setIndex) => (
+                                <React.Fragment key={set.id}>
+                                    <div className="grid grid-cols-[2rem_1fr_1fr_3rem] gap-x-3 items-center mb-2">
+                                        <span className="text-center font-bold text-text-secondary">{setIndex + 1}</span>
+                                        <input 
+                                            type="number" 
+                                            step="0.5"
+                                            min="0"
+                                            max="1000"
+                                            value={set.weight}
+                                            onChange={(e) => updateSet(exIndex, setIndex, 'weight', e.target.value)}
+                                            onFocus={handleFocus}
+                                            disabled={set.isCompleted}
+                                            className={`bg-background text-center rounded p-2 w-full min-w-0 transition-colors ${set.isCompleted ? 'line-through text-text-secondary' : 'text-text-primary'}`}
+                                        />
+                                        <input 
+                                            type="number"
+                                            min="1"
+                                            max="50"
+                                            value={set.reps}
+                                            onChange={(e) => updateSet(exIndex, setIndex, 'reps', e.target.value)}
+                                            onFocus={handleFocus}
+                                            disabled={set.isCompleted}
+                                            className={`bg-background text-center rounded p-2 w-full min-w-0 transition-colors ${set.isCompleted ? 'line-through text-text-secondary' : 'text-text-primary'}`}
+                                        />
+                                        <button 
+                                            onClick={() => toggleSetCompletion(exIndex, setIndex)} 
+                                            aria-label={`Mark set ${setIndex + 1} as ${set.isCompleted ? 'incomplete' : 'complete'}`}
+                                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 mx-auto focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                                                set.isCompleted ? 'bg-tertiary' : 'border-2 border-gray-600 hover:bg-gray-700'
+                                            }`}
+                                        >
+                                            {set.isCompleted && <CheckIcon className="w-5 h-5 text-background" />}
+                                        </button>
+                                    </div>
+                                    {set.lastPerformed && !set.isCompleted && (
+                                        <div className="text-right text-xs text-text-secondary pr-12 -mt-1 mb-2">
+                                            Last: {set.lastPerformed}
+                                        </div>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                            <button onClick={() => addSet(exIndex)} className="w-full bg-primary/20 text-primary p-2 rounded-lg mt-3 font-semibold hover:bg-primary/30 transition-colors">Add Set</button>
+                        </div>
+                    ))}
+                </main>
+            </div>
+
+            {/* Floating action footer */}
+            <footer className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur-sm border-t border-surface z-10">
+                <div className="space-y-3 max-w-3xl mx-auto">
+                    <button onClick={() => setIsPickerOpen(true)} className="w-full bg-secondary/20 text-secondary p-3 rounded-lg font-semibold hover:bg-secondary/30 transition-colors">
+                        + Add Exercise
+                    </button>
+                    <button onClick={handleAttemptFinish} className="w-full bg-tertiary p-3 rounded-lg font-bold text-lg hover:bg-tertiary/90 transition-colors">
+                        Finish Workout
+                    </button>
+                </div>
             </footer>
 
             {isConfirmingFinish && (
@@ -434,7 +492,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
                     )}
                 </div>
             )}
-        </div>
+        </>
     );
 };
 
