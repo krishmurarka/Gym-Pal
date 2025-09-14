@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { Routine, PerformedExercise, WorkoutSession, Exercise, MuscleGroup, Equipment, RoutineExercise } from '../types';
 import { useExercises } from '../hooks/useExercises';
@@ -72,6 +72,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
     // State for drag and drop
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+    const touchDragData = useRef<{ initialY: number, element: HTMLElement, height: number } | null>(null);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -251,31 +252,93 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
 
     const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => event.target.select();
 
+    const performDrop = (fromIndex: number, toIndex: number) => {
+        if (fromIndex === toIndex) return;
+        setPerformedExercises(prev => {
+            const newExercises = [...prev];
+            const [movedItem] = newExercises.splice(fromIndex, 1);
+            newExercises.splice(toIndex, 0, movedItem);
+            return newExercises;
+        });
+    };
+
+    const cleanupDragState = useCallback(() => {
+        if (touchDragData.current) {
+            document.body.style.overflow = '';
+            touchDragData.current.element.style.transform = '';
+            touchDragData.current.element.style.zIndex = '';
+            touchDragData.current.element.style.boxShadow = '';
+        }
+        setDraggedIndex(null);
+        setDragOverIndex(null);
+        touchDragData.current = null;
+    }, []);
+
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
         setDraggedIndex(index);
         e.dataTransfer.effectAllowed = 'move';
     };
 
     const handleDragEnter = (index: number) => {
-        if (index !== draggedIndex) {
+        if (draggedIndex !== null && index !== draggedIndex) {
             setDragOverIndex(index);
         }
     };
 
     const handleDrop = (dropIndex: number) => {
-        if (draggedIndex === null || draggedIndex === dropIndex) return;
-        setPerformedExercises(prev => {
-            const newExercises = [...prev];
-            const [draggedItem] = newExercises.splice(draggedIndex, 1);
-            newExercises.splice(dropIndex, 0, draggedItem);
-            return newExercises;
-        });
+        if (draggedIndex === null) return;
+        performDrop(draggedIndex, dropIndex);
     };
 
-    const handleDragEnd = () => {
-        setDraggedIndex(null);
-        setDragOverIndex(null);
+    const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>, index: number) => {
+        const itemElement = e.currentTarget.closest('[data-drag-item="true"]') as HTMLElement;
+        if (!itemElement) return;
+
+        setDraggedIndex(index);
+        touchDragData.current = {
+            initialY: e.touches[0].clientY,
+            element: itemElement,
+            height: itemElement.offsetHeight,
+        };
+        document.body.style.overflow = 'hidden';
     };
+
+    const handleTouchMove = useCallback((e: TouchEvent) => {
+        if (draggedIndex === null || !touchDragData.current) return;
+        e.preventDefault();
+
+        const currentY = e.touches[0].clientY;
+        const deltaY = currentY - touchDragData.current.initialY;
+        const { element, height } = touchDragData.current;
+
+        element.style.transform = `translateY(${deltaY}px)`;
+        element.style.zIndex = '50';
+        element.style.boxShadow = '0 10px 20px rgba(0,0,0,0.2)';
+
+        const overIndex = draggedIndex + Math.round(deltaY / height);
+        const clampedOverIndex = Math.max(0, Math.min(performedExercises.length - 1, overIndex));
+        setDragOverIndex(clampedOverIndex);
+    }, [draggedIndex, performedExercises.length]);
+
+    const handleTouchEnd = useCallback(() => {
+        if (draggedIndex !== null && dragOverIndex !== null) {
+            performDrop(draggedIndex, dragOverIndex);
+        }
+        cleanupDragState();
+    }, [draggedIndex, dragOverIndex, cleanupDragState]);
+
+    useEffect(() => {
+        if (draggedIndex !== null && touchDragData.current) {
+            window.addEventListener('touchmove', handleTouchMove, { passive: false });
+            window.addEventListener('touchend', handleTouchEnd);
+            window.addEventListener('touchcancel', handleTouchEnd);
+        }
+        return () => {
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchend', handleTouchEnd);
+            window.removeEventListener('touchcancel', handleTouchEnd);
+        };
+    }, [draggedIndex, handleTouchMove, handleTouchEnd]);
 
     const filteredExercises = useMemo(() => {
         const lowerCaseSearch = exerciseSearch.toLowerCase();
@@ -311,24 +374,27 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
                     </div>
                 </header>
 
-                <main className="px-4 space-y-4 mt-4 max-w-3xl mx-auto">
+                <main className="px-4 space-y-4 mt-4 max-w-3xl mx-auto" style={{ userSelect: draggedIndex !== null ? 'none' : 'auto' }}>
                     {performedExercises.map((pEx, exIndex) => (
                         <div 
                             key={pEx.exerciseId}
+                            data-drag-item="true"
                             draggable
                             onDragStart={(e) => handleDragStart(e, exIndex)}
                             onDragOver={(e) => e.preventDefault()}
                             onDragEnter={() => handleDragEnter(exIndex)}
                             onDragLeave={() => setDragOverIndex(null)}
                             onDrop={() => handleDrop(exIndex)}
-                            onDragEnd={handleDragEnd}
+                            onDragEnd={cleanupDragState}
                             className={`bg-surface p-4 rounded-lg shadow-md cursor-grab transition-all duration-200 
                                 ${draggedIndex === exIndex ? 'opacity-50 shadow-2xl scale-105' : ''}
-                                ${dragOverIndex === exIndex ? 'outline-2 outline-dashed outline-primary -outline-offset-2' : ''}
+                                ${dragOverIndex === exIndex && dragOverIndex !== draggedIndex ? 'outline-2 outline-dashed outline-primary -outline-offset-2' : ''}
                             `}
                         >
                             <div className="flex items-center gap-3 mb-3">
-                                <DragHandleIcon className="w-5 h-5 text-text-secondary flex-shrink-0" />
+                                <div onTouchStart={(e) => handleTouchStart(e, exIndex)} className="cursor-grab p-2 -ml-2">
+                                    <DragHandleIcon className="w-5 h-5 text-text-secondary flex-shrink-0" />
+                                </div>
                                 <h3 className="text-lg font-bold">{pEx.exerciseName}</h3>
                             </div>
                             <div className="grid grid-cols-[2rem_1fr_1fr_3rem] gap-x-3 text-center text-text-secondary text-sm mb-2">
