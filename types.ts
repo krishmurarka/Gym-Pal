@@ -11,10 +11,20 @@ export enum MuscleGroup {
   Glutes = 'Glutes',
 }
 
+export enum Equipment {
+  Barbell = 'Barbell',
+  Dumbbell = 'Dumbbell',
+  Machine = 'Machine',
+  Kettlebell = 'Kettlebell',
+  Bodyweight = 'Bodyweight',
+  Other = 'Other',
+}
+
 export interface Exercise {
   id: string;
   name: string;
   muscleGroup: MuscleGroup;
+  equipment: Equipment;
 }
 
 export interface WorkoutSet {

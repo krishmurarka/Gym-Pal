@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { Routine, Exercise, RoutineExercise, WorkoutSet, MuscleGroup } from '../types';
+import { Routine, Exercise, RoutineExercise, MuscleGroup, Equipment } from '../types';
 import { useExercises } from '../hooks/useExercises';
 
 interface RoutinesProps {
@@ -12,10 +12,14 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
     const [isEditing, setIsEditing] = useState<Routine | null>(null);
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [isCreatingExercise, setIsCreatingExercise] = useState(false);
-    const [newExercise, setNewExercise] = useState({ name: '', muscleGroup: MuscleGroup.Chest });
+    const [newExercise, setNewExercise] = useState({ name: '', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Barbell });
     const [searchQuery, setSearchQuery] = useState('');
     const [isNameInvalid, setIsNameInvalid] = useState(false);
     const { allExercises, setCustomExercises, findExerciseById } = useExercises();
+
+    // State for exercise picker
+    const [exerciseSearch, setExerciseSearch] = useState('');
+    const [equipmentFilter, setEquipmentFilter] = useState<Equipment | 'all'>('all');
 
     const handleSaveRoutine = () => {
         if (!isEditing || !isEditing.name.trim()) {
@@ -52,6 +56,8 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
             setIsEditing(prev => ({ ...prev!, exercises: [...prev!.exercises, newRoutineExercise] }));
         }
         setIsPickerOpen(false);
+        setExerciseSearch('');
+        setEquipmentFilter('all');
     };
 
     const removeExerciseFromRoutine = (exerciseId: string) => {
@@ -98,19 +104,32 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
                 id: crypto.randomUUID(),
                 name: newExercise.name.trim(),
                 muscleGroup: newExercise.muscleGroup,
+                equipment: newExercise.equipment,
             };
             setCustomExercises(prev => [...prev, newEx]);
             setIsCreatingExercise(false);
-            setNewExercise({ name: '', muscleGroup: MuscleGroup.Chest });
+            setNewExercise({ name: '', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Barbell });
         }
     };
 
     const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => event.target.select();
 
-    const groupedExercises = allExercises.reduce((acc, ex) => {
-        (acc[ex.muscleGroup] = acc[ex.muscleGroup] || []).push(ex);
-        return acc;
-    }, {} as Record<string, Exercise[]>);
+    const filteredExercises = useMemo(() => {
+        const lowerCaseSearch = exerciseSearch.toLowerCase();
+        return allExercises.filter(ex => {
+            const matchesSearch = ex.name.toLowerCase().includes(lowerCaseSearch) || 
+                                  ex.muscleGroup.toLowerCase().includes(lowerCaseSearch);
+            const matchesEquipment = equipmentFilter === 'all' || ex.equipment === equipmentFilter;
+            return matchesSearch && matchesEquipment;
+        });
+    }, [allExercises, exerciseSearch, equipmentFilter]);
+
+    const groupedExercises = useMemo(() => {
+        return filteredExercises.reduce((acc, ex) => {
+            (acc[ex.muscleGroup] = acc[ex.muscleGroup] || []).push(ex);
+            return acc;
+        }, {} as Record<string, Exercise[]>);
+    }, [filteredExercises]);
 
     const filteredRoutines = routines.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -167,8 +186,11 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
                             <div className="w-full max-w-md mx-auto mt-10">
                                 <h3 className="text-xl font-bold mb-4">Create New Exercise</h3>
                                 <input type="text" placeholder="Exercise Name" value={newExercise.name} onChange={e => setNewExercise({...newExercise, name: e.target.value})} className="w-full bg-surface p-3 rounded-lg mb-4"/>
-                                <select value={newExercise.muscleGroup} onChange={e => setNewExercise({...newExercise, muscleGroup: e.target.value as MuscleGroup})} className="w-full bg-surface p-3 rounded-lg mb-6">
+                                <select value={newExercise.muscleGroup} onChange={e => setNewExercise({...newExercise, muscleGroup: e.target.value as MuscleGroup})} className="w-full bg-surface p-3 rounded-lg mb-4">
                                     {Object.values(MuscleGroup).map(group => <option key={group} value={group}>{group}</option>)}
+                                </select>
+                                <select value={newExercise.equipment} onChange={e => setNewExercise({...newExercise, equipment: e.target.value as Equipment})} className="w-full bg-surface p-3 rounded-lg mb-6">
+                                    {Object.values(Equipment).map(eq => <option key={eq} value={eq}>{eq}</option>)}
                                 </select>
                                 <div className="flex gap-4">
                                     <button onClick={() => setIsCreatingExercise(false)} className="w-full bg-gray-600 p-3 rounded-lg">Back to Picker</button>
@@ -177,14 +199,36 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
                             </div>
                         ) : (
                            <>
-                            <div className="flex-1 overflow-y-auto">
-                                <h3 className="text-xl font-bold mb-4">Select an Exercise</h3>
-                                <button onClick={() => setIsCreatingExercise(true)} className="w-full bg-tertiary/20 text-tertiary p-3 rounded-lg mb-4 font-semibold hover:bg-tertiary/30 transition-colors">
-                                  + Add Custom Exercise
-                                </button>
+                            <div className="flex-none">
+                                <h3 className="text-xl font-bold text-center">Select an Exercise</h3>
+                                <input 
+                                    type="text"
+                                    placeholder="Search exercises..."
+                                    value={exerciseSearch}
+                                    onChange={(e) => setExerciseSearch(e.target.value)}
+                                    className="w-full bg-surface p-3 rounded-lg my-4"
+                                />
+                                <div className="flex space-x-2 overflow-x-auto pb-2 -mx-4 px-4">
+                                    {['all', ...Object.values(Equipment)].map(eq => (
+                                        <button key={eq} onClick={() => setEquipmentFilter(eq as Equipment | 'all')} className={`px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-colors ${equipmentFilter === eq ? 'bg-primary text-white' : 'bg-surface text-text-secondary hover:bg-gray-700'}`}>
+                                            {eq.charAt(0).toUpperCase() + eq.slice(1)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto mt-4">
+                                <div className="sticky top-0 z-20 bg-background py-3">
+                                    <button onClick={() => setIsCreatingExercise(true)} className="w-full bg-tertiary/20 text-tertiary p-3 rounded-lg font-semibold hover:bg-tertiary/30 transition-colors">
+                                        + Add Custom Exercise
+                                    </button>
+                                </div>
+                                {Object.keys(groupedExercises).length === 0 && (
+                                    <p className="text-center text-text-secondary mt-8">No exercises match your filters.</p>
+                                )}
                                 {Object.entries(groupedExercises).map(([group, exercises]) => (
                                     <div key={group} className="mb-4">
-                                        <h4 className="font-bold text-primary mb-2 sticky top-0 bg-background py-1">{group}</h4>
+                                        <h4 className="font-bold text-primary mb-2 sticky top-16 z-10 bg-background py-1">{group}</h4>
                                         {exercises.map(ex => (
                                             <button key={ex.id} onClick={() => addExerciseToRoutine(ex)} className="w-full text-left bg-surface p-3 rounded-lg mb-2 hover:bg-surface/80 transition-colors">
                                                 {ex.name}
@@ -193,7 +237,9 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
                                     </div>
                                 ))}
                             </div>
-                            <button onClick={() => setIsPickerOpen(false)} className="w-full bg-gray-600 p-3 rounded-lg mt-4 sticky bottom-4">Cancel</button>
+                            <div className="flex-none pt-4">
+                                <button onClick={() => setIsPickerOpen(false)} className="w-full bg-gray-600 p-3 rounded-lg">Cancel</button>
+                            </div>
                            </>
                         )}
                     </div>
