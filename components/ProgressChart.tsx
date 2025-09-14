@@ -14,9 +14,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       return (
         <div className="bg-surface p-3 border border-gray-700 rounded-lg shadow-lg text-sm">
           <p className="label font-bold text-text-primary mb-1">{`Date: ${label}`}</p>
-          <p className="intro text-primary font-semibold">{`Total Volume: ${point.totalVolume.toFixed(0)} kg`}</p>
-          <p className="desc text-text-secondary">{`${point.totalSets} sets, ${point.totalReps} total reps`}</p>
-          <p className="desc text-text-secondary">{`Avg. Weight: ${point.avgWeight.toFixed(1)} kg`}</p>
+          <p className="intro text-primary font-semibold">{`Peak Set Volume: ${point.maxVolume.toFixed(0)}`}</p>
+          <p className="desc text-text-secondary">{`Strongest set: ${point.details}`}</p>
         </div>
       );
     }
@@ -30,11 +29,19 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ sessions }) => {
 
     const trackableExercises = useMemo(() => {
         const routineExerciseIds = new Set<string>();
+        // Also include exercises that have been performed, even if not in a routine anymore
+        sessions.forEach(session => {
+            session.exercises.forEach(ex => routineExerciseIds.add(ex.exerciseId));
+        });
         routines.forEach(routine => {
             routine.exercises.forEach(ex => routineExerciseIds.add(ex.exerciseId));
         });
-        return allExercises.filter(ex => routineExerciseIds.has(ex.id));
-    }, [routines, allExercises]);
+        
+        return allExercises
+            .filter(ex => routineExerciseIds.has(ex.id))
+            .sort((a,b) => a.name.localeCompare(b.name));
+
+    }, [routines, allExercises, sessions]);
 
     useEffect(() => {
         if (trackableExercises.length > 0 && !trackableExercises.some(ex => ex.id === selectedExerciseId)) {
@@ -47,46 +54,46 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ sessions }) => {
     const chartData = useMemo(() => {
         if (!selectedExerciseId || sessions.length === 0) return [];
 
-        // Aggregate data by day to handle multiple sessions on the same day correctly
-        const dailyData = new Map<string, { totalVolume: number; totalReps: number; totalSets: number; date: Date }>();
+        const dailyMaxes = new Map<string, { maxVolumeSet: number; date: Date; details: string }>();
 
         sessions.forEach(session => {
             const exerciseData = session.exercises.find(ex => ex.exerciseId === selectedExerciseId);
             if (exerciseData && exerciseData.sets.length > 0) {
                 const dateKey = new Date(session.date).toISOString().split('T')[0];
-                
-                const sessionVolume = exerciseData.sets.reduce((sum, set) => sum + (set.weight * set.reps), 0);
-                const sessionReps = exerciseData.sets.reduce((sum, set) => sum + set.reps, 0);
-                const sessionSets = exerciseData.sets.length;
 
-                if (dailyData.has(dateKey)) {
-                    const existing = dailyData.get(dateKey)!;
-                    existing.totalVolume += sessionVolume;
-                    existing.totalReps += sessionReps;
-                    existing.totalSets += sessionSets;
+                let maxSetVolume = 0;
+                let maxSetDetails = '';
+                exerciseData.sets.forEach(set => {
+                    const currentSetVolume = set.weight * set.reps;
+                    if (currentSetVolume > maxSetVolume) {
+                        maxSetVolume = currentSetVolume;
+                        maxSetDetails = `${set.weight}kg x ${set.reps} reps`;
+                    }
+                });
+
+                if (dailyMaxes.has(dateKey)) {
+                    const existing = dailyMaxes.get(dateKey)!;
+                    if (maxSetVolume > existing.maxVolumeSet) {
+                        existing.maxVolumeSet = maxSetVolume;
+                        existing.details = maxSetDetails;
+                    }
                 } else {
-                    dailyData.set(dateKey, {
-                        totalVolume: sessionVolume,
-                        totalReps: sessionReps,
-                        totalSets: sessionSets,
+                    dailyMaxes.set(dateKey, {
+                        maxVolumeSet: maxSetVolume,
                         date: new Date(session.date),
+                        details: maxSetDetails,
                     });
                 }
             }
         });
 
-        return Array.from(dailyData.values())
-            .map(data => {
-                const avgWeight = data.totalReps > 0 ? data.totalVolume / data.totalReps : 0;
-                return {
-                    date: data.date,
-                    displayDate: data.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-                    totalVolume: data.totalVolume,
-                    totalSets: data.totalSets,
-                    totalReps: data.totalReps,
-                    avgWeight,
-                };
-            })
+        return Array.from(dailyMaxes.values())
+            .map(data => ({
+                date: data.date,
+                displayDate: data.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                maxVolume: data.maxVolumeSet,
+                details: data.details,
+            }))
             .sort((a, b) => a.date.getTime() - b.date.getTime());
             
     }, [sessions, selectedExerciseId]);
@@ -96,7 +103,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ sessions }) => {
     if (trackableExercises.length === 0) {
         return (
             <div className="text-center text-text-secondary h-[300px] flex items-center justify-center">
-                <p>Create a routine and add exercises to it to start tracking your progress.</p>
+                <p>Create a routine and perform a workout to start tracking your progress.</p>
             </div>
         );
     }
@@ -119,10 +126,10 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ sessions }) => {
                     <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                         <XAxis dataKey="displayDate" stroke="#8E8E93" />
-                        <YAxis dataKey="totalVolume" stroke="#8E8E93" unit="kg" domain={['auto', 'auto']} allowDecimals={false} />
+                        <YAxis dataKey="maxVolume" stroke="#8E8E93" unit="" domain={['auto', 'auto']} allowDecimals={false} />
                         <Tooltip content={<CustomTooltip />} />
                         <Legend />
-                        <Line type="monotone" dataKey="totalVolume" stroke="#30D158" activeDot={{ r: 8 }} name="Total Volume (kg)" dot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="maxVolume" stroke="#30D158" activeDot={{ r: 8 }} name="Max Set Volume (kg*reps)" dot={{ r: 4 }} />
                     </LineChart>
                 </ResponsiveContainer>
             ) : (
