@@ -23,6 +23,20 @@
         },
       }
     </script>
+    <style>
+      /* Prevent text selection and change cursor during a drag operation */
+      body.dragging-active, body.dragging-active * {
+        user-select: none !important;
+        -webkit-user-select: none !important;
+        cursor: grabbing !important;
+      }
+
+      /* Style for the item being actively dragged via touch */
+      [data-drag-item="true"].is-dragging {
+        transition: none !important; /* Override other transitions for smooth finger tracking */
+        z-index: 50;
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
