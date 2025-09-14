@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { WorkoutSession, MuscleGroup } from '../types';
@@ -167,7 +168,6 @@ const Dashboard: React.FC = () => {
       </div>
 
       {renderContent()}
-
     </div>
   );
 };

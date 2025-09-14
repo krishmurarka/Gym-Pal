@@ -1,5 +1,6 @@
 {
   "name": "GymPal - Workout Tracker",
   "description": "Gym Tracking App",
+  "icon": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgdmlld0JveD0iMCAwIDI1NiAyNTYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI1NiIgaGVpZ2h0PSIyNTYiIHJ4PSI1NSIgZmlsbD0iIzFDMUMxRSIvPjxnIHRyYW5zZm9ybT0icm90YXRlKC00NSAxMjggMTI4KSI+PHJlY3QgeD0iNzgiIHk9IjExNiIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIyNCIgcng9IjgiIGZpbGw9IiM4RTg5MyIvPjxyZWN0IHg9IjQwIiB5PSI5NiIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMwQTg0RkYiLz48cmVjdCB4PSIxNjgiIHk9Ijk2IiB3aWR0aD0iNDgiIGhlaWdodD0iNjQiIHJ4PSIxMiIgZmlsbD0iIzBBODRGRiIvPjwvZz48L3N2Zz4=",
   "requestFramePermissions": []
 }

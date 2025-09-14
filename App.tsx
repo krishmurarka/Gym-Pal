@@ -38,7 +38,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background font-sans">
-        <main className="pb-20">
+        <main className="pb-28">
             {renderContent()}
         </main>
         {!activeWorkout && (
