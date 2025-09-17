@@ -1,11 +1,12 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { WorkoutSession, MuscleGroup } from '../types';
 import ProgressChart from './ProgressChart';
 import MuscleDistributionChart from './MuscleDistributionChart';
 import RoutineLogbook from './RoutineLogbook';
 
 type Tab = 'Overview' | 'Calendar' | 'Progress' | 'Logbook';
+const TABS: Tab[] = ['Overview', 'Calendar', 'Progress', 'Logbook'];
 
 interface DashboardProps {
     sessions: WorkoutSession[];
@@ -17,9 +18,45 @@ const Dashboard: React.FC<DashboardProps> = ({ sessions, setSessions, onEditSess
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  // Swipe gesture state
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const minSwipeDistance = 50;
+
   const sortedSessions = useMemo(() => 
     [...sessions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
   [sessions]);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchEndX.current = null;
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    const distance = touchStartX.current - touchEndX.current;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe || isRightSwipe) {
+      const currentIndex = TABS.indexOf(activeTab);
+      let nextIndex;
+      if (isLeftSwipe) { // Swiped left, go to next tab
+        nextIndex = (currentIndex + 1) % TABS.length;
+      } else { // Swiped right, go to previous tab
+        nextIndex = (currentIndex - 1 + TABS.length) % TABS.length;
+      }
+      setActiveTab(TABS[nextIndex]);
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
 
   const stats = useMemo(() => {
     const totalWorkouts = sessions.length;
@@ -169,19 +206,27 @@ const Dashboard: React.FC<DashboardProps> = ({ sessions, setSessions, onEditSess
     <div className="p-4 space-y-6 max-w-5xl mx-auto relative" style={{ minHeight: 'calc(100vh - 6rem)', paddingBottom: '3rem' }}>
       <h1 className="text-4xl font-bold text-center text-text-primary">Dashboard</h1>
       
-      <div className="flex justify-center bg-surface p-1 rounded-full">
-        {(['Overview', 'Calendar', 'Progress', 'Logbook'] as Tab[]).map(tab => (
+      <div className="flex justify-center bg-surface p-1 rounded-full mx-2">
+        {TABS.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2 font-semibold rounded-full transition-colors text-sm w-full ${activeTab === tab ? 'bg-primary text-background shadow-md shadow-primary/30' : 'text-text-secondary hover:text-text-primary'}`}
+            className={`px-5 py-2 font-semibold rounded-full transition-colors text-sm w-full whitespace-nowrap ${activeTab === tab ? 'bg-primary text-background shadow-md shadow-primary/30' : 'text-text-secondary hover:text-text-primary'}`}
           >
             {tab}
           </button>
         ))}
       </div>
 
-      {renderContent()}
+      <div
+        key={activeTab}
+        className="animate-fade-in"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {renderContent()}
+      </div>
 
       <p className="absolute bottom-[-1.5rem] left-0 right-0 text-center text-xs text-text-secondary">
         Made by Krish Murarka 💙
