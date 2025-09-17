@@ -6,6 +6,9 @@ import { MUSCLE_GROUP_COLORS } from '../constants';
 interface MuscleData {
     name: MuscleGroup;
     value: number;
+    // Fix: Add index signature to make interface compatible with recharts' data prop type.
+    // The recharts library expects data objects to have a string index signature.
+    [key: string]: any;
 }
 
 interface MuscleDistributionChartProps {

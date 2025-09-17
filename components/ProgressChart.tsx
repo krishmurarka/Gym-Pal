@@ -33,8 +33,13 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ sessions }) => {
         sessions.forEach(session => {
             session.exercises.forEach(ex => routineExerciseIds.add(ex.exerciseId));
         });
+        // Fix: Iterate through variants to get exercises as `routine.exercises` does not exist.
         routines.forEach(routine => {
-            routine.exercises.forEach(ex => routineExerciseIds.add(ex.exerciseId));
+            if (routine.variants) {
+                routine.variants.forEach(variant => {
+                    variant.exercises.forEach(ex => routineExerciseIds.add(ex.exerciseId));
+                });
+            }
         });
         
         return allExercises

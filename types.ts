@@ -40,10 +40,17 @@ export interface RoutineExercise {
   sets: WorkoutSet[];
 }
 
+export interface RoutineVariant {
+  id: string;
+  name: string; // e.g., "A", "B", "Heavy Day"
+  exercises: RoutineExercise[];
+}
+
 export interface Routine {
   id: string;
   name: string;
-  exercises: RoutineExercise[];
+  variants: RoutineVariant[];
+  nextVariantIndex: number;
 }
 
 export interface PerformedExercise {
@@ -57,6 +64,8 @@ export interface WorkoutSession {
   id: string;
   routineId: string;
   routineName: string;
+  variantId: string;
+  variantName: string;
   date: string; // ISO string
   exercises: PerformedExercise[];
   durationSeconds: number;
@@ -66,4 +75,5 @@ export enum Page {
     Dashboard = 'Dashboard',
     Routines = 'Routines',
     ActiveWorkout = 'ActiveWorkout',
+    EditSession = 'EditSession',
 }

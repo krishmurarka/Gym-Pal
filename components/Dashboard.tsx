@@ -1,6 +1,6 @@
 
+
 import React, { useMemo, useState } from 'react';
-import useLocalStorage from '../hooks/useLocalStorage';
 import { WorkoutSession, MuscleGroup } from '../types';
 import ProgressChart from './ProgressChart';
 import MuscleDistributionChart from './MuscleDistributionChart';
@@ -8,8 +8,13 @@ import RoutineLogbook from './RoutineLogbook';
 
 type Tab = 'Overview' | 'Calendar' | 'Progress' | 'Logbook';
 
-const Dashboard: React.FC = () => {
-  const [sessions] = useLocalStorage<WorkoutSession[]>('workoutSessions', []);
+interface DashboardProps {
+    sessions: WorkoutSession[];
+    setSessions: React.Dispatch<React.SetStateAction<WorkoutSession[]>>;
+    onEditSession: (session: WorkoutSession) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ sessions, setSessions, onEditSession }) => {
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -136,7 +141,7 @@ const Dashboard: React.FC = () => {
           </div>
         );
       case 'Logbook':
-        return <RoutineLogbook sessions={sessions} />;
+        return <RoutineLogbook sessions={sessions} setSessions={setSessions} onEditSession={onEditSession} />;
       default: return null;
     }
   };

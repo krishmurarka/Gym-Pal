@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { Routine, PerformedExercise, WorkoutSession, Exercise, MuscleGroup, Equipment, RoutineExercise } from '../types';
+import { Routine, PerformedExercise, WorkoutSession, Exercise, MuscleGroup, Equipment, RoutineExercise, RoutineVariant } from '../types';
 import { useExercises } from '../hooks/useExercises';
 import StopwatchIcon from './icons/StopwatchIcon';
 import CheckIcon from './icons/CheckIcon';
@@ -8,7 +8,10 @@ import DragHandleIcon from './icons/DragHandleIcon';
 
 interface ActiveWorkoutProps {
     routine: Routine;
+    variant: RoutineVariant;
     onFinish: () => void;
+    sessions: WorkoutSession[];
+    setSessions: React.Dispatch<React.SetStateAction<WorkoutSession[]>>;
 }
 
 // A helper type for sets within the active workout component's state
@@ -20,8 +23,7 @@ type ActiveWorkoutSet = {
     lastPerformed?: string | null;
 };
 
-const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
-    const [sessions, setSessions] = useLocalStorage<WorkoutSession[]>('workoutSessions', []);
+const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, variant, onFinish, sessions, setSessions }) => {
     const [routines, setRoutines] = useLocalStorage<Routine[]>('routines', []);
     const { allExercises, findExerciseById, setCustomExercises } = useExercises();
     
@@ -36,7 +38,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
             return undefined;
         };
         
-        return routine.exercises.map(routineEx => {
+        return variant.exercises.map(routineEx => {
             const exerciseDetails = findExerciseById(routineEx.exerciseId);
             const lastPerformance = findLastPerformance(routineEx.exerciseId);
             
@@ -72,13 +74,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
     // State for drag and drop
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-    const touchDragData = useRef<{
-        initialY: number;
-        element: HTMLElement;
-        height: number;
-        lastY: number;
-        ticking: boolean;
-    } | null>(null);
+    const touchDragData = useRef<{ initialY: number; element: HTMLElement; height: number; lastY: number; ticking: boolean; } | null>(null);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -143,7 +139,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
                 ...ex,
                 sets: ex.sets
                     .filter(set => set.isCompleted)
-                    .map(({ id, weight, reps }) => ({ id, weight, reps, isCompleted: true })), // Strip extra props
+                    .map(({ id, weight, reps }) => ({ id, weight, reps, isCompleted: true })),
             }))
             .filter(ex => ex.sets.length > 0);
 
@@ -152,6 +148,8 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
                 id: crypto.randomUUID(),
                 routineId: routine.id,
                 routineName: routine.name,
+                variantId: variant.id,
+                variantName: variant.name,
                 date: new Date().toISOString(),
                 exercises: completedExercises,
                 durationSeconds: duration
@@ -160,10 +158,10 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
             setSessions(prevSessions => [...prevSessions, finalWorkout]);
         }
         onFinish();
-    }, [routine.id, routine.name, performedExercises, duration, setSessions, onFinish]);
+    }, [routine.id, routine.name, variant.id, variant.name, performedExercises, duration, setSessions, onFinish]);
     
     const updateRoutineAndFinish = () => {
-        const updatedRoutineExercises: RoutineExercise[] = performedExercises.map(pEx => ({
+        const updatedVariantExercises: RoutineExercise[] = performedExercises.map(pEx => ({
             exerciseId: pEx.exerciseId,
             sets: pEx.sets.map(set => ({
                 id: set.id,
@@ -171,24 +169,34 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
                 reps: set.reps,
             })),
         }));
-
-        const updatedRoutine: Routine = { ...routine, exercises: updatedRoutineExercises };
-        setRoutines(prevRoutines => prevRoutines.map(r => r.id === routine.id ? updatedRoutine : r));
-
+    
+        setRoutines(prevRoutines =>
+            prevRoutines.map(r => {
+                if (r.id !== routine.id) return r;
+    
+                const updatedVariants = r.variants.map(v => {
+                    if (v.id !== variant.id) return v;
+                    return { ...v, exercises: updatedVariantExercises };
+                });
+    
+                return { ...r, variants: updatedVariants };
+            })
+        );
+    
         saveSessionAndFinish();
     };
 
     const handleAttemptFinish = () => {
-        const originalExerciseIds = new Set(routine.exercises.map(ex => ex.exerciseId));
+        const originalExerciseIds = new Set(variant.exercises.map(ex => ex.exerciseId));
         const hasNewExercises = performedExercises.some(pEx => !originalExerciseIds.has(pEx.exerciseId));
 
         const hasSetCountChanges = performedExercises.some(pEx => {
-            const originalEx = routine.exercises.find(rEx => rEx.exerciseId === pEx.exerciseId);
+            const originalEx = variant.exercises.find(rEx => rEx.exerciseId === pEx.exerciseId);
             if (!originalEx) return false;
             return originalEx.sets.length !== pEx.sets.length;
         });
 
-        const originalExerciseOrder = routine.exercises.map(ex => ex.exerciseId);
+        const originalExerciseOrder = variant.exercises.map(ex => ex.exerciseId);
         const currentExerciseOrder = performedExercises.map(ex => ex.exerciseId);
         const hasOrderChanged = JSON.stringify(originalExerciseOrder) !== JSON.stringify(currentExerciseOrder);
 
@@ -390,7 +398,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
             <div className="pb-40"> {/* Padding at the bottom to make space for the fixed footer */}
                 <header className="sticky top-0 z-10 p-4 bg-background/90 backdrop-blur-sm border-b border-surface">
                     <div className="flex justify-between items-center max-w-3xl mx-auto">
-                        <h1 className="text-2xl font-bold truncate pr-2">{routine.name}</h1>
+                        <h1 className="text-2xl font-bold truncate pr-2">{routine.name} ({variant.name})</h1>
                         <div className="flex items-center flex-shrink-0 gap-2 bg-surface px-3 py-1 rounded-full text-lg">
                             <StopwatchIcon className="w-5 h-5" />
                             <span>{formatDuration(duration)}</span>
@@ -492,7 +500,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
                     <div className="bg-surface rounded-lg p-6 max-w-sm w-full text-center shadow-2xl">
                         <h2 className="text-xl font-bold mb-4">Update Routine?</h2>
                         <p className="text-text-secondary mb-6">
-                            You've changed exercises or sets. Save these changes to your "{routine.name}" routine for next time?
+                            You've changed exercises or sets. Save these changes to your "{routine.name} ({variant.name})" routine for next time?
                         </p>
                         <div className="space-y-3">
                             <button
@@ -536,49 +544,28 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ routine, onFinish }) => {
                             </div>
                         </div>
                     ) : (
-                        <>
+                       <>
                         <div className="flex-none">
                             <h3 className="text-xl font-bold text-center">Select an Exercise</h3>
-                            <input 
-                                type="text"
-                                placeholder="Search exercises..."
-                                value={exerciseSearch}
-                                onChange={(e) => setExerciseSearch(e.target.value)}
-                                className="w-full bg-surface p-3 rounded-lg my-4"
-                            />
+                            <input type="text" placeholder="Search exercises..." value={exerciseSearch} onChange={(e) => setExerciseSearch(e.target.value)} className="w-full bg-surface p-3 rounded-lg my-4"/>
                             <div className="flex space-x-2 overflow-x-auto pb-2 -mx-4 px-4">
-                                {['all', ...Object.values(Equipment)].map(eq => (
-                                    <button key={eq} onClick={() => setEquipmentFilter(eq as Equipment | 'all')} className={`px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-colors ${equipmentFilter === eq ? 'bg-primary text-white' : 'bg-surface text-text-secondary hover:bg-gray-700'}`}>
-                                        {eq.charAt(0).toUpperCase() + eq.slice(1)}
-                                    </button>
+                                {(['all', ...Object.values(Equipment)] as const).map(eq => (
+                                    <button key={eq} onClick={() => setEquipmentFilter(eq)} className={`px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-colors ${equipmentFilter === eq ? 'bg-primary text-white' : 'bg-surface text-text-secondary hover:bg-gray-700'}`}>{eq.charAt(0).toUpperCase() + eq.slice(1)}</button>
                                 ))}
                             </div>
                         </div>
-
                         <div className="flex-1 overflow-y-auto mt-4">
-                            <div className="sticky top-0 z-20 bg-background py-3">
-                                <button onClick={() => setIsCreatingExercise(true)} className="w-full bg-tertiary/20 text-tertiary p-3 rounded-lg font-semibold hover:bg-tertiary/30 transition-colors">
-                                    + Add Custom Exercise
-                                </button>
-                            </div>
-                            {Object.keys(groupedExercises).length === 0 && (
-                                <p className="text-center text-text-secondary mt-8">No exercises match your filters.</p>
-                            )}
+                            <div className="sticky top-0 z-20 bg-background py-3"><button onClick={() => setIsCreatingExercise(true)} className="w-full bg-tertiary/20 text-tertiary p-3 rounded-lg font-semibold hover:bg-tertiary/30 transition-colors">+ Add Custom Exercise</button></div>
+                            {Object.keys(groupedExercises).length === 0 && <p className="text-center text-text-secondary mt-8">No exercises match your filters.</p>}
                             {Object.entries(groupedExercises).map(([group, exercises]) => (
                                 <div key={group} className="mb-4">
                                     <h4 className="font-bold text-primary mb-2 sticky top-16 z-10 bg-background py-1">{group}</h4>
-                                    {exercises.map(ex => (
-                                        <button key={ex.id} onClick={() => addExerciseToSession(ex)} className="w-full text-left bg-surface p-3 rounded-lg mb-2 hover:bg-surface/80 transition-colors">
-                                            {ex.name}
-                                        </button>
-                                    ))}
+                                    {exercises.map(ex => <button key={ex.id} onClick={() => addExerciseToSession(ex)} className="w-full text-left bg-surface p-3 rounded-lg mb-2 hover:bg-surface/80 transition-colors">{ex.name}</button>)}
                                 </div>
                             ))}
                         </div>
-                        <div className="flex-none pt-4">
-                            <button onClick={() => setIsPickerOpen(false)} className="w-full bg-gray-600 p-3 rounded-lg">Cancel</button>
-                        </div>
-                        </>
+                        <div className="flex-none pt-4"><button onClick={() => setIsPickerOpen(false)} className="w-full bg-gray-600 p-3 rounded-lg">Cancel</button></div>
+                       </>
                     )}
                 </div>
             )}

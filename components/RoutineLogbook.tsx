@@ -2,19 +2,22 @@ import React, { useState, useMemo } from 'react';
 import { jsPDF } from 'jspdf';
 import { WorkoutSession, Routine } from '../types';
 import useLocalStorage from '../hooks/useLocalStorage';
-import ShareIcon from './icons/ShareIcon';
+import EllipsisVerticalIcon from './icons/EllipsisVerticalIcon';
 
 interface RoutineLogbookProps {
     sessions: WorkoutSession[];
+    setSessions: React.Dispatch<React.SetStateAction<WorkoutSession[]>>;
+    onEditSession: (session: WorkoutSession) => void;
 }
 
 type DateRange = '1W' | '1M' | '3M' | '6M' | '1Y';
 
-const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions }) => {
+const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions, setSessions, onEditSession }) => {
     const [routines] = useLocalStorage<Routine[]>('routines', []);
     const [selectedRoutineId, setSelectedRoutineId] = useState('all');
     const [selectedDateRange, setSelectedDateRange] = useState<DateRange>('1M');
-    const [openShareMenu, setOpenShareMenu] = useState<string | null>(null);
+    const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
     const filteredSessions = useMemo(() => {
         const now = new Date();
@@ -47,7 +50,7 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions }) => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        setOpenShareMenu(null);
+        setOpenActionMenuId(null);
     };
 
     const shareFile = async (file: File, session: WorkoutSession) => {
@@ -58,10 +61,10 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions }) => {
                     text: `Check out my workout from ${new Date(session.date).toLocaleDateString()}`,
                     files: [file],
                 });
-                setOpenShareMenu(null);
+                setOpenActionMenuId(null);
             } catch (error) {
                 console.error('Share failed:', error);
-                setOpenShareMenu(null);
+                setOpenActionMenuId(null);
             }
         } else {
             downloadFile(file);
@@ -71,9 +74,10 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions }) => {
     const handleSharePDF = (session: WorkoutSession) => {
         const doc = new jsPDF();
         let y = 30;
+        const title = `${session.routineName} ${session.variantName ? `(${session.variantName})` : ''}`;
 
         doc.setFontSize(20);
-        doc.text(session.routineName, 14, 22);
+        doc.text(title, 14, 22);
 
         doc.setFontSize(12);
         doc.text(`Date: ${new Date(session.date).toLocaleDateString()}`, 14, y);
@@ -113,6 +117,13 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions }) => {
         const csvFile = new File([csvBlob], `${session.routineName}_${new Date(session.date).toISOString().split('T')[0]}.csv`, { type: 'text/csv' });
         shareFile(csvFile, session);
     };
+    
+    const handleDeleteSession = (sessionId: string) => {
+        setSessions(prev => prev.filter(s => s.id !== sessionId));
+        setShowDeleteConfirm(null);
+    };
+
+    const sessionToDelete = useMemo(() => sessions.find(s => s.id === showDeleteConfirm), [sessions, showDeleteConfirm]);
 
     return (
         <div className="space-y-4">
@@ -137,17 +148,35 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions }) => {
                         <div key={session.id} className="bg-surface p-4 rounded-lg">
                             <div className="flex justify-between items-start mb-2">
                                 <div>
-                                    <h3 className="font-bold text-lg text-primary">{session.routineName}</h3>
+                                    <h3 className="font-bold text-lg text-primary">
+                                        {session.routineName} {session.variantName && `(${session.variantName})`}
+                                    </h3>
                                     <p className="text-sm text-text-secondary">{new Date(session.date).toLocaleDateString()}</p>
                                 </div>
                                 <div className="relative">
-                                    <button onClick={() => setOpenShareMenu(openShareMenu === session.id ? null : session.id)} className="p-2 rounded-full hover:bg-gray-700">
-                                        <ShareIcon className="w-5 h-5" />
+                                    <button onClick={() => setOpenActionMenuId(openActionMenuId === session.id ? null : session.id)} className="p-2 rounded-full hover:bg-gray-700">
+                                        <EllipsisVerticalIcon className="w-5 h-5" />
                                     </button>
-                                    {openShareMenu === session.id && (
-                                        <div className="absolute right-0 mt-2 w-40 bg-background border border-gray-700 rounded-lg shadow-xl z-10">
-                                            <button onClick={() => handleSharePDF(session)} className="block w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface">Export as PDF</button>
-                                            <button onClick={() => handleShareCSV(session)} className="block w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface">Export as CSV</button>
+                                    {openActionMenuId === session.id && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-background border border-gray-700 rounded-lg shadow-xl z-10">
+                                            <button onClick={() => handleSharePDF(session)} className="block w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface">Share as PDF</button>
+                                            <button onClick={() => handleShareCSV(session)} className="block w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface">Share as CSV</button>
+                                            <button 
+                                                onClick={() => {
+                                                    setOpenActionMenuId(null);
+                                                    onEditSession(session);
+                                                }}
+                                                className="block w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface"
+                                            >
+                                                Edit Session
+                                            </button>
+                                            <div className="my-1 border-t border-gray-700"></div>
+                                            <button
+                                                onClick={() => { setOpenActionMenuId(null); setShowDeleteConfirm(session.id); }}
+                                                className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-surface hover:text-red-500"
+                                            >
+                                                Delete Session
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -170,6 +199,31 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions }) => {
             ) : (
                 <div className="text-center text-text-secondary py-10 bg-surface rounded-lg">
                     <p>No workouts found for the selected filters.</p>
+                </div>
+            )}
+
+            {showDeleteConfirm && sessionToDelete && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" aria-modal="true" role="dialog">
+                    <div className="bg-surface rounded-lg p-6 max-w-sm w-full text-center shadow-2xl">
+                        <h2 className="text-xl font-bold mb-4">Confirm Deletion</h2>
+                        <p className="text-text-secondary mb-6">
+                            Are you sure you want to delete the workout "{sessionToDelete.routineName}" from {new Date(sessionToDelete.date).toLocaleDateString()}? This action cannot be undone.
+                        </p>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setShowDeleteConfirm(null)}
+                                className="w-full bg-gray-600 p-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => handleDeleteSession(showDeleteConfirm)}
+                                className="w-full bg-red-600 p-3 rounded-lg font-bold hover:bg-red-500 transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

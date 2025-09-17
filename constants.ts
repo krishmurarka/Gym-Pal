@@ -8,7 +8,7 @@ export const EXERCISES: Exercise[] = [
   { id: 'ex4', name: 'Push-ups', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Bodyweight },
   { id: 'ex_chest_5', name: 'Incline Bench Press', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Barbell },
   { id: 'ex_chest_6', name: 'Decline Bench Press', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Barbell },
-  { id: 'ex_chest_7', name: 'Chest Press Machine', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Machine },
+  { id: 'ex_chest_7', name: 'Incline Chest Press Machine', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Machine },
   { id: 'ex_chest_8', name: 'Pec Deck Machine', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Machine },
   { id: 'ex_chest_9', name: 'Cable Crossover', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Other },
   { id: 'ex_chest_10', name: 'Dips', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Bodyweight },
@@ -19,7 +19,7 @@ export const EXERCISES: Exercise[] = [
   { id: 'ex6', name: 'Deadlift', muscleGroup: MuscleGroup.Back, equipment: Equipment.Barbell },
   { id: 'ex7', name: 'Bent Over Row', muscleGroup: MuscleGroup.Back, equipment: Equipment.Barbell },
   { id: 'ex8', name: 'Lat Pulldown', muscleGroup: MuscleGroup.Back, equipment: Equipment.Machine },
-  { id: 'ex_back_5', name: 'Dumbbell Row', muscleGroup: MuscleGroup.Back, equipment: Equipment.Dumbbell },
+  { id: 'ex_back_5', name: 'Bent Over Row Dumbbell', muscleGroup: MuscleGroup.Back, equipment: Equipment.Dumbbell },
   { id: 'ex_back_6', name: 'T-Bar Row', muscleGroup: MuscleGroup.Back, equipment: Equipment.Barbell },
   { id: 'ex_back_7', name: 'Seated Cable Row', muscleGroup: MuscleGroup.Back, equipment: Equipment.Machine },
   { id: 'ex_back_8', name: 'Chin-ups', muscleGroup: MuscleGroup.Back, equipment: Equipment.Bodyweight },
@@ -81,6 +81,25 @@ export const EXERCISES: Exercise[] = [
   { id: 'ex_forearms_1', name: 'Wrist Curls', muscleGroup: MuscleGroup.Forearms, equipment: Equipment.Dumbbell },
   { id: 'ex_forearms_2', name: 'Reverse Wrist Curls', muscleGroup: MuscleGroup.Forearms, equipment: Equipment.Dumbbell },
   { id: 'ex_forearms_3', name: 'Farmer\'s Walk', muscleGroup: MuscleGroup.Forearms, equipment: Equipment.Kettlebell },
+
+  // Newly added from user images
+  { id: 'ex_back_11', name: 'Seated Rowing Machine', muscleGroup: MuscleGroup.Back, equipment: Equipment.Machine },
+  { id: 'ex_back_12', name: 'Reverse Grip Lat Pulldown', muscleGroup: MuscleGroup.Back, equipment: Equipment.Machine },
+  { id: 'ex_back_13', name: 'Straight Arm Pulldown', muscleGroup: MuscleGroup.Back, equipment: Equipment.Machine },
+  { id: 'ex_shoulders_8', name: 'Reverse Pec Deck Fly', muscleGroup: MuscleGroup.Shoulders, equipment: Equipment.Machine },
+  { id: 'ex_biceps_6', name: 'Machine Hammer Curl', muscleGroup: MuscleGroup.Biceps, equipment: Equipment.Machine },
+  { id: 'ex_biceps_7', name: 'Reverse Cable Curl', muscleGroup: MuscleGroup.Biceps, equipment: Equipment.Other },
+  { id: 'ex_back_14', name: 'Barbell Shrugs', muscleGroup: MuscleGroup.Back, equipment: Equipment.Barbell },
+  { id: 'ex_back_15', name: 'Dumbbell Shrugs', muscleGroup: MuscleGroup.Back, equipment: Equipment.Dumbbell },
+  { id: 'ex_chest_12', name: 'Flat Dumbbell Press', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Dumbbell },
+  { id: 'ex_chest_13', name: 'Decline Dumbbell Press', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Dumbbell },
+  { id: 'ex_chest_14', name: 'Cable Chest Press', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Other },
+  { id: 'ex_chest_15', name: 'Decline Machine Chest Press', muscleGroup: MuscleGroup.Chest, equipment: Equipment.Machine },
+  { id: 'ex_shoulders_9', name: 'Dumbbell Overhead Press', muscleGroup: MuscleGroup.Shoulders, equipment: Equipment.Dumbbell },
+  { id: 'ex_triceps_6', name: 'Rope Extension', muscleGroup: MuscleGroup.Triceps, equipment: Equipment.Other },
+  { id: 'ex_legs_10', name: 'Front Squat', muscleGroup: MuscleGroup.Legs, equipment: Equipment.Barbell },
+  { id: 'ex_legs_11', name: 'Single Leg Press', muscleGroup: MuscleGroup.Legs, equipment: Equipment.Machine },
+  { id: 'ex_legs_12', name: 'Seated Leg Curl', muscleGroup: MuscleGroup.Legs, equipment: Equipment.Machine },
 ];
 
 export const MUSCLE_GROUP_COLORS: Record<MuscleGroup, string> = {
