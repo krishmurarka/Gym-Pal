@@ -1,5 +1,4 @@
 
-
 import React, { useMemo, useState } from 'react';
 import { WorkoutSession, MuscleGroup } from '../types';
 import ProgressChart from './ProgressChart';
@@ -70,12 +69,13 @@ const Dashboard: React.FC<DashboardProps> = ({ sessions, setSessions, onEditSess
     for (let day = 1; day <= daysInMonth; day++) {
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const daySessions = sessionsByDate.get(dateKey);
+        const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
         days.push(
-            <div key={day} className={`p-1 text-sm rounded-lg h-24 flex flex-col ${daySessions ? 'bg-primary/20' : 'bg-surface/50'}`}>
-                <span className={`font-bold ${new Date().toDateString() === new Date(year, month, day).toDateString() ? 'text-primary' : ''}`}>{day}</span>
+            <div key={day} className={`p-2 text-sm rounded-xl h-24 flex flex-col bg-background/50 relative`}>
+                <span className={`font-bold text-center ${isToday ? 'bg-secondary text-background rounded-full w-6 h-6 flex items-center justify-center' : ''}`}>{day}</span>
                 {daySessions && (
-                    <div className="flex-1 overflow-y-auto text-xs mt-1">
-                        {daySessions.map(s => <p key={s.id} className="bg-primary/50 text-white rounded px-1 truncate">{s.routineName}</p>)}
+                    <div className="flex-1 overflow-y-auto text-xs mt-1 space-y-1">
+                        {daySessions.map(s => <p key={s.id} className="bg-primary/50 text-white rounded px-1 truncate text-[10px]">{s.routineName}</p>)}
                     </div>
                 )}
             </div>
@@ -83,16 +83,16 @@ const Dashboard: React.FC<DashboardProps> = ({ sessions, setSessions, onEditSess
     }
 
     return (
-        <div className="bg-surface p-4 rounded-lg">
+        <div className="bg-surface p-4 rounded-3xl border border-border">
             <div className="flex justify-between items-center mb-4">
-                <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 rounded-full hover:bg-gray-700">&lt;</button>
+                <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 rounded-full hover:bg-border">&lt;</button>
                 <h3 className="font-bold text-lg">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
-                <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 rounded-full hover:bg-gray-700">&gt;</button>
+                <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 rounded-full hover:bg-border">&gt;</button>
             </div>
             <div className="grid grid-cols-7 gap-1 text-center text-text-secondary text-xs mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <div key={day}>{day}</div>)}
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => <div key={day}>{day}</div>)}
             </div>
-            <div className="grid grid-cols-7 gap-1">{days}</div>
+            <div className="grid grid-cols-7 gap-2">{days}</div>
         </div>
     );
   };
@@ -103,29 +103,32 @@ const Dashboard: React.FC<DashboardProps> = ({ sessions, setSessions, onEditSess
         return (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-              <div className="bg-surface p-4 rounded-lg">
-                <p className="text-text-secondary">Total Workouts</p>
-                <p className="text-3xl font-bold">{stats.totalWorkouts}</p>
+              <div className="bg-surface p-6 rounded-3xl border border-border border-t-2 border-t-primary">
+                <p className="text-text-secondary text-sm">Total Workouts</p>
+                <p className="text-4xl font-bold text-primary">{stats.totalWorkouts}</p>
               </div>
-              <div className="bg-surface p-4 rounded-lg">
-                <p className="text-text-secondary">Total Volume (kg)</p>
-                <p className="text-3xl font-bold">{stats.totalVolume.toLocaleString()}</p>
+              <div className="bg-surface p-6 rounded-3xl border border-border border-t-2 border-t-secondary">
+                <p className="text-text-secondary text-sm">Total Volume (kg)</p>
+                <p className="text-4xl font-bold text-secondary">{stats.totalVolume.toLocaleString()}</p>
               </div>
-              <div className="bg-surface p-4 rounded-lg">
-                <p className="text-text-secondary">Workouts This Month</p>
-                <p className="text-3xl font-bold">{stats.workoutsThisMonth}</p>
+              <div className="bg-surface p-6 rounded-3xl border border-border border-t-2 border-t-primary">
+                <p className="text-text-secondary text-sm">Workouts This Month</p>
+                <p className="text-4xl font-bold text-primary">{stats.workoutsThisMonth}</p>
               </div>
             </div>
-            <div className="bg-surface p-4 rounded-lg">
+            <div className="bg-surface p-4 rounded-3xl border border-border">
               <h2 className="text-xl font-bold mb-4 text-center">Recent Activity</h2>
               {sortedSessions.slice(0, 5).map(session => (
-                <div key={session.id} className="flex justify-between items-center border-b border-gray-700 py-2 last:border-b-0">
-                    <p className="font-semibold">{session.routineName}</p>
+                <div key={session.id} className="flex justify-between items-center border-b border-border py-3 last:border-b-0">
+                    <div>
+                        <p className="font-semibold">{session.routineName}</p>
+                        <p className="text-text-secondary text-xs">{session.variantName ? `Variant ${session.variantName}` : ''}</p>
+                    </div>
                     <p className="text-text-secondary text-sm">{new Date(session.date).toLocaleDateString()}</p>
                 </div>
               ))}
             </div>
-            <div className="bg-surface p-4 rounded-lg">
+            <div className="bg-surface p-4 rounded-3xl border border-border">
               <h2 className="text-xl font-bold mb-4 text-center">Muscle Distribution</h2>
               <MuscleDistributionChart data={muscleData} />
             </div>
@@ -135,7 +138,7 @@ const Dashboard: React.FC<DashboardProps> = ({ sessions, setSessions, onEditSess
         return renderCalendar();
       case 'Progress':
         return (
-          <div className="bg-surface p-4 rounded-lg">
+          <div className="bg-surface p-4 rounded-3xl border border-border">
             <h2 className="text-xl font-bold mb-4 text-center">Exercise Progress</h2>
             <ProgressChart sessions={sessions} />
           </div>
@@ -148,24 +151,30 @@ const Dashboard: React.FC<DashboardProps> = ({ sessions, setSessions, onEditSess
 
   if (sessions.length === 0) {
     return (
-        <div className="p-4 text-center text-text-secondary">
-            <h1 className="text-3xl font-bold text-text-primary mb-4">Dashboard</h1>
-            <p>Welcome to GymPal!</p>
-            <p>Complete a workout to see your progress here.</p>
+        <div className="p-6 text-center text-text-secondary flex flex-col justify-center items-center relative" style={{ minHeight: 'calc(100vh - 6rem)' }}>
+            <h1 className="text-4xl font-bold text-text-primary mb-4">Welcome to FGym!</h1>
+            <p className="text-lg max-w-md mt-2">
+                Ready to build a stronger you? 💪
+                <br />
+                Select a routine, crush your first workout, and watch this space fill with your achievements!
+            </p>
+            <p className="absolute bottom-[-1.5rem] left-0 right-0 text-center text-xs text-text-secondary">
+                Made by Krish Murarka 💙
+            </p>
         </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-6">
-      <h1 className="text-3xl font-bold text-center">Dashboard</h1>
+    <div className="p-4 space-y-6 max-w-5xl mx-auto relative" style={{ minHeight: 'calc(100vh - 6rem)', paddingBottom: '3rem' }}>
+      <h1 className="text-4xl font-bold text-center text-text-primary">Dashboard</h1>
       
-      <div className="flex justify-center border-b border-surface overflow-x-auto">
+      <div className="flex justify-center bg-surface p-1 rounded-full">
         {(['Overview', 'Calendar', 'Progress', 'Logbook'] as Tab[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 font-semibold whitespace-nowrap transition-colors ${activeTab === tab ? 'border-b-2 border-primary text-primary' : 'text-text-secondary hover:text-white'}`}
+            className={`px-6 py-2 font-semibold rounded-full transition-colors text-sm w-full ${activeTab === tab ? 'bg-primary text-background shadow-md shadow-primary/30' : 'text-text-secondary hover:text-text-primary'}`}
           >
             {tab}
           </button>
@@ -173,6 +182,10 @@ const Dashboard: React.FC<DashboardProps> = ({ sessions, setSessions, onEditSess
       </div>
 
       {renderContent()}
+
+      <p className="absolute bottom-[-1.5rem] left-0 right-0 text-center text-xs text-text-secondary">
+        Made by Krish Murarka 💙
+      </p>
     </div>
   );
 };

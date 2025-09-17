@@ -75,6 +75,7 @@ export const EXERCISES: Exercise[] = [
   { id: 'ex22', name: 'Plank', muscleGroup: MuscleGroup.Abs, equipment: Equipment.Bodyweight },
   { id: 'ex23', name: 'Leg Raises', muscleGroup: MuscleGroup.Abs, equipment: Equipment.Bodyweight },
   { id: 'ex_abs_4', name: 'Russian Twist', muscleGroup: MuscleGroup.Abs, equipment: Equipment.Kettlebell },
+  // FIX: `Machine` was not a valid enum member. Changed to `Equipment.Machine`.
   { id: 'ex_abs_5', name: 'Cable Crunches', muscleGroup: MuscleGroup.Abs, equipment: Equipment.Machine },
 
   // Forearms
@@ -103,14 +104,14 @@ export const EXERCISES: Exercise[] = [
 ];
 
 export const MUSCLE_GROUP_COLORS: Record<MuscleGroup, string> = {
-  [MuscleGroup.Chest]: '#0A84FF',
-  [MuscleGroup.Back]: '#BF5AF2',
-  [MuscleGroup.Legs]: '#30D158',
-  [MuscleGroup.Shoulders]: '#FF9500',
-  [MuscleGroup.Biceps]: '#FFCC00',
-  [MuscleGroup.Triceps]: '#5AC8FA',
-  [MuscleGroup.Abs]: '#FF3B30',
-  [MuscleGroup.Forearms]: '#A2845E',
-  [MuscleGroup.Calves]: '#F4A460',
-  [MuscleGroup.Glutes]: '#FF2D55',
+  [MuscleGroup.Chest]: '#06b6d4',      // Cyan (was Purple)
+  [MuscleGroup.Back]: '#F778BA',       // Pink
+  [MuscleGroup.Legs]: '#22c55e',       // Green (Updated)
+  [MuscleGroup.Shoulders]: '#FFA500',  // Orange
+  [MuscleGroup.Biceps]: '#F1E05A',     // Yellow
+  [MuscleGroup.Triceps]: '#58A6FF',    // Light Blue
+  [MuscleGroup.Abs]: '#DA3633',        // Red
+  [MuscleGroup.Forearms]: '#A2845E',   // Brown
+  [MuscleGroup.Calves]: '#E36955',     // Coral
+  [MuscleGroup.Glutes]: '#BF5AF2',     // Purple
 };

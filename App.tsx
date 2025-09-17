@@ -64,8 +64,8 @@ const App: React.FC = () => {
   const showNav = !activeWorkout && !sessionToEdit;
 
   return (
-    <div className="min-h-screen bg-background font-sans">
-        <main className={showNav ? 'pb-28' : ''}>
+    <div className="min-h-screen bg-background font-sans text-text-primary">
+        <main className={showNav ? 'pb-24' : ''}>
             {renderContent()}
         </main>
         {showNav && (

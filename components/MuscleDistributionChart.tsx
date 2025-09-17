@@ -18,8 +18,8 @@ interface MuscleDistributionChartProps {
 const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-surface p-2 border border-gray-700 rounded-lg shadow-lg">
-                <p className="label text-text-primary">{`${payload[0].name} : ${payload[0].value} workouts`}</p>
+            <div className="bg-surface p-2 border border-border rounded-lg shadow-lg">
+                <p className="label text-text-primary">{`${payload[0].name} : ${payload[0].value} exercises`}</p>
             </div>
         );
     }
@@ -55,7 +55,7 @@ const MuscleDistributionChart: React.FC<MuscleDistributionChartProps> = ({ data 
                         ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{paddingTop: '20px'}} />
+                    <Legend wrapperStyle={{paddingTop: '20px', color: '#E6EDF3'}} />
                 </PieChart>
             </ResponsiveContainer>
         </div>

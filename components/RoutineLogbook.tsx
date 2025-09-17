@@ -129,13 +129,13 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions, setSessions, 
         <div className="space-y-4">
              <h2 className="text-xl font-bold text-center">Workout Logbook</h2>
             <div className="flex flex-col sm:flex-row gap-4">
-                <select value={selectedRoutineId} onChange={(e) => setSelectedRoutineId(e.target.value)} className="w-full sm:w-1/2 bg-surface p-2 rounded-lg border border-transparent focus:border-primary">
+                <select value={selectedRoutineId} onChange={(e) => setSelectedRoutineId(e.target.value)} className="w-full sm:w-1/2 bg-input border border-border p-2 rounded-lg focus:border-secondary">
                     <option value="all">All Routines</option>
                     {routines.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
                 <div className="w-full sm:w-1/2 bg-surface rounded-lg flex p-1">
                     {dateRanges.map(range => (
-                        <button key={range} onClick={() => setSelectedDateRange(range)} className={`flex-1 text-sm py-1 rounded-md transition-colors ${selectedDateRange === range ? 'bg-primary text-white font-semibold' : 'text-text-secondary hover:bg-gray-700'}`}>
+                        <button key={range} onClick={() => setSelectedDateRange(range)} className={`flex-1 text-sm py-1 rounded-md transition-colors ${selectedDateRange === range ? 'bg-secondary text-white font-semibold' : 'text-text-secondary hover:bg-border'}`}>
                             {range}
                         </button>
                     ))}
@@ -145,7 +145,7 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions, setSessions, 
             {filteredSessions.length > 0 ? (
                 <div className="space-y-4">
                     {filteredSessions.map(session => (
-                        <div key={session.id} className="bg-surface p-4 rounded-lg">
+                        <div key={session.id} className="bg-surface p-4 rounded-xl border border-border">
                             <div className="flex justify-between items-start mb-2">
                                 <div>
                                     <h3 className="font-bold text-lg text-primary">
@@ -154,11 +154,11 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions, setSessions, 
                                     <p className="text-sm text-text-secondary">{new Date(session.date).toLocaleDateString()}</p>
                                 </div>
                                 <div className="relative">
-                                    <button onClick={() => setOpenActionMenuId(openActionMenuId === session.id ? null : session.id)} className="p-2 rounded-full hover:bg-gray-700">
+                                    <button onClick={() => setOpenActionMenuId(openActionMenuId === session.id ? null : session.id)} className="p-2 rounded-full hover:bg-border">
                                         <EllipsisVerticalIcon className="w-5 h-5" />
                                     </button>
                                     {openActionMenuId === session.id && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-background border border-gray-700 rounded-lg shadow-xl z-10">
+                                        <div className="absolute right-0 mt-2 w-48 bg-background border border-border rounded-lg shadow-xl z-10">
                                             <button onClick={() => handleSharePDF(session)} className="block w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface">Share as PDF</button>
                                             <button onClick={() => handleShareCSV(session)} className="block w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface">Share as CSV</button>
                                             <button 
@@ -170,10 +170,10 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions, setSessions, 
                                             >
                                                 Edit Session
                                             </button>
-                                            <div className="my-1 border-t border-gray-700"></div>
+                                            <div className="my-1 border-t border-border"></div>
                                             <button
                                                 onClick={() => { setOpenActionMenuId(null); setShowDeleteConfirm(session.id); }}
-                                                className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-surface hover:text-red-500"
+                                                className="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-surface"
                                             >
                                                 Delete Session
                                             </button>
@@ -185,6 +185,7 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions, setSessions, 
                                 {session.exercises.map(ex => (
                                     <div key={ex.exerciseId}>
                                         <p className="font-semibold text-text-primary">{ex.exerciseName}</p>
+                                        {ex.notes && <p className="pl-4 text-sm text-text-secondary italic">Note: "{ex.notes}"</p>}
                                         <div className="pl-4 text-sm text-text-secondary">
                                             {ex.sets.map((set, index) => (
                                                 <p key={set.id}>{`Set ${index + 1}: ${set.weight} kg x ${set.reps} reps`}</p>
@@ -197,14 +198,14 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions, setSessions, 
                     ))}
                 </div>
             ) : (
-                <div className="text-center text-text-secondary py-10 bg-surface rounded-lg">
+                <div className="text-center text-text-secondary py-10 bg-surface rounded-xl border border-border">
                     <p>No workouts found for the selected filters.</p>
                 </div>
             )}
 
             {showDeleteConfirm && sessionToDelete && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" aria-modal="true" role="dialog">
-                    <div className="bg-surface rounded-lg p-6 max-w-sm w-full text-center shadow-2xl">
+                    <div className="bg-surface rounded-xl p-6 max-w-sm w-full text-center shadow-2xl border border-border">
                         <h2 className="text-xl font-bold mb-4">Confirm Deletion</h2>
                         <p className="text-text-secondary mb-6">
                             Are you sure you want to delete the workout "{sessionToDelete.routineName}" from {new Date(sessionToDelete.date).toLocaleDateString()}? This action cannot be undone.
@@ -212,13 +213,13 @@ const RoutineLogbook: React.FC<RoutineLogbookProps> = ({ sessions, setSessions, 
                         <div className="flex gap-4">
                             <button
                                 onClick={() => setShowDeleteConfirm(null)}
-                                className="w-full bg-gray-600 p-3 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+                                className="w-full btn btn-ghost"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={() => handleDeleteSession(showDeleteConfirm)}
-                                className="w-full bg-red-600 p-3 rounded-lg font-bold hover:bg-red-500 transition-colors"
+                                className="w-full btn btn-danger"
                             >
                                 Delete
                             </button>

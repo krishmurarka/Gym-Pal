@@ -12,7 +12,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const point = payload[0].payload;
       return (
-        <div className="bg-surface p-3 border border-gray-700 rounded-lg shadow-lg text-sm">
+        <div className="bg-surface p-3 border border-border rounded-lg shadow-lg text-sm">
           <p className="label font-bold text-text-primary mb-1">{`Date: ${label}`}</p>
           <p className="intro text-primary font-semibold">{`Peak Set Volume: ${point.maxVolume.toFixed(0)}`}</p>
           <p className="desc text-text-secondary">{`Strongest set: ${point.details}`}</p>
@@ -118,7 +118,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ sessions }) => {
             <select
                 value={selectedExerciseId}
                 onChange={e => setSelectedExerciseId(e.target.value)}
-                className="w-full bg-background p-2 rounded-lg mb-4 border border-surface"
+                className="w-full bg-input p-2 rounded-lg mb-4 border border-border"
                 aria-label="Select an exercise to view progress"
             >
                 {trackableExercises.map((ex: Exercise) => (
@@ -126,20 +126,20 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ sessions }) => {
                 ))}
             </select>
             
-            {chartData.length > 0 ? (
+            {chartData.length > 1 ? (
                 <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                        <XAxis dataKey="displayDate" stroke="#8E8E93" />
-                        <YAxis dataKey="maxVolume" stroke="#8E8E93" unit="" domain={['auto', 'auto']} allowDecimals={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
+                        <XAxis dataKey="displayDate" stroke="#8B949E" />
+                        <YAxis dataKey="maxVolume" stroke="#8B949E" unit="" domain={['auto', 'auto']} allowDecimals={false} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend />
-                        <Line type="monotone" dataKey="maxVolume" stroke="#30D158" activeDot={{ r: 8 }} name="Max Set Volume (kg*reps)" dot={{ r: 4 }} />
+                        <Legend wrapperStyle={{ color: '#E6EDF3' }}/>
+                        <Line type="monotone" dataKey="maxVolume" stroke="#22c55e" activeDot={{ r: 8 }} name="Max Set Volume (kg*reps)" dot={{ r: 4, fill: '#22c55e' }} strokeWidth={2}/>
                     </LineChart>
                 </ResponsiveContainer>
             ) : (
                 <div className="text-center text-text-secondary h-[300px] flex items-center justify-center">
-                    <p>No data for this exercise yet. Complete a workout with it to see your progress.</p>
+                    <p>Complete at least two workouts with this exercise to see a progress chart.</p>
                 </div>
             )}
         </div>
