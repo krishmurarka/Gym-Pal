@@ -51,6 +51,7 @@ export interface Routine {
   name: string;
   variants: RoutineVariant[];
   nextVariantIndex: number;
+  originTemplateId?: string;
 }
 
 export interface PerformedExercise {

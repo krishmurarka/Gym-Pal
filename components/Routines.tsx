@@ -5,6 +5,7 @@ import { useExercises } from '../hooks/useExercises';
 import DragHandleIcon from './icons/DragHandleIcon';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
+import CheckIcon from './icons/CheckIcon';
 
 interface RoutinesProps {
     onStartWorkout: (workout: { routine: Routine, variant: RoutineVariant }) => void;
@@ -128,7 +129,7 @@ const DEFAULT_ROUTINES: Routine[] = [
 ];
 
 const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
-    const [routines, setRoutines] = useLocalStorage<Routine[]>('routines', DEFAULT_ROUTINES);
+    const [routines, setRoutines] = useLocalStorage<Routine[]>('routines', []);
     const [isEditing, setIsEditing] = useState<Routine | null>(null);
     const [activeVariantIndex, setActiveVariantIndex] = useState(0);
     const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -146,6 +147,12 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
     const touchDragData = useRef<{ initialY: number; element: HTMLElement; height: number; lastY: number; ticking: boolean; } | null>(null);
+
+    const addedTemplateIds = useMemo(() => {
+        return new Set(
+            routines.map(r => r.originTemplateId).filter((id): id is string => !!id)
+        );
+    }, [routines]);
 
     useEffect(() => {
         // A one-time migration for old routine structures
@@ -382,6 +389,38 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
     
     const filteredRoutines = routines.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
+    const handleAddDefaultRoutine = useCallback((templateRoutine: Routine) => {
+        let newName = templateRoutine.name;
+        let nameExists = routines.some(r => r.name.toLowerCase() === newName.toLowerCase());
+        let copyCount = 1;
+        while (nameExists) {
+            newName = `${templateRoutine.name} (${copyCount})`;
+            nameExists = routines.some(r => r.name.toLowerCase() === newName.toLowerCase());
+            copyCount++;
+        }
+    
+        const newRoutine: Routine = {
+            ...templateRoutine,
+            id: crypto.randomUUID(),
+            name: newName,
+            originTemplateId: templateRoutine.id,
+            nextVariantIndex: 0,
+            variants: templateRoutine.variants.map(variant => ({
+                ...variant,
+                id: crypto.randomUUID(),
+                exercises: variant.exercises.map(ex => ({
+                    ...ex,
+                    sets: ex.sets.map(set => ({
+                        ...set,
+                        id: crypto.randomUUID(),
+                    }))
+                }))
+            }))
+        };
+    
+        setRoutines(prevRoutines => [...prevRoutines, newRoutine]);
+    }, [routines, setRoutines]);
+
     if (isEditing) {
         const currentExercises = isEditing.variants[activeVariantIndex]?.exercises || [];
         return (
@@ -519,48 +558,109 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
     }
 
     return (
-        <div className="p-4 space-y-6 max-w-5xl mx-auto">
-            <div className="text-center mb-4">
-                <h1 className="text-4xl font-bold">Your Routines</h1>
-            </div>
-            <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search routines..."
-                className="w-full bg-surface p-3 rounded-xl text-text-primary placeholder-text-secondary border border-border"
-            />
-            
-            <div className="grid gap-4 md:grid-cols-2">
-                {filteredRoutines.length === 0 && (
-                    <div className="text-center text-text-secondary py-10 bg-surface rounded-2xl border border-border md:col-span-2">
-                        <p className="text-lg">No routines found.</p>
-                        {routines.length > 0 && <p>Try a different search term.</p>}
-                    </div>
+        <div className="p-4 space-y-8 max-w-5xl mx-auto">
+            {/* YOUR ROUTINES SECTION */}
+            <div>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
+                    <h1 className="text-4xl font-bold text-center sm:text-left">Your Routines</h1>
+                    <button onClick={handleCreateNew} className="btn btn-primary w-full sm:w-auto">
+                        <PlusIcon className="w-5 h-5" />
+                        <span>Create New Routine</span>
+                    </button>
+                </div>
+                {routines.length > 0 && (
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search your routines..."
+                        className="w-full bg-surface p-3 rounded-xl text-text-primary placeholder-text-secondary border border-border mb-4"
+                    />
                 )}
-                {filteredRoutines.map(routine => {
-                    const nextVariantName = routine.variants[routine.nextVariantIndex || 0]?.name || 'A';
-                    const totalExercises = routine.variants.reduce((sum, v) => sum + v.exercises.length, 0);
-
-                    return (
-                        <div key={routine.id} className="bg-surface p-4 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-border flex flex-col">
-                            <div className="flex-grow">
-                                <h3 className="text-2xl font-bold text-primary">{routine.name}</h3>
-                                <p className="text-text-secondary text-sm mb-4">{totalExercises} {totalExercises === 1 ? 'exercise' : 'exercises'} across {routine.variants.length} {routine.variants.length === 1 ? 'variant' : 'variants'}</p>
-                            </div>
-                            <div className="flex flex-col sm:flex-row gap-2 mt-4">
-                                <button onClick={() => handleStartWorkout(routine)} className="flex-1 btn btn-secondary">Start Workout ({nextVariantName})</button>
-                                <button onClick={() => { setIsEditing(routine); setActiveVariantIndex(0); }} className="btn btn-ghost">Edit</button>
-                                <button onClick={() => handleDeleteRoutine(routine.id)} className="btn btn-danger">Delete</button>
-                            </div>
+                
+                <div className="grid gap-4 md:grid-cols-2">
+                    {routines.length === 0 && (
+                        <div className="text-center text-text-secondary py-10 bg-surface rounded-2xl border border-border md:col-span-2">
+                            <p className="text-lg">You haven't added any routines yet.</p>
+                            <p>Add one from the templates below or create your own!</p>
                         </div>
-                    );
-                })}
+                    )}
+                    {routines.length > 0 && filteredRoutines.length === 0 && (
+                        <div className="text-center text-text-secondary py-10 bg-surface rounded-2xl border border-border md:col-span-2">
+                            <p className="text-lg">No routines found matching your search.</p>
+                            <p>Try a different search term.</p>
+                        </div>
+                    )}
+                    {filteredRoutines.map(routine => {
+                        const nextVariantName = routine.variants[routine.nextVariantIndex || 0]?.name || 'A';
+                        const totalExercises = routine.variants.reduce((sum, v) => sum + v.exercises.length, 0);
+
+                        return (
+                            <div key={routine.id} className="bg-surface p-4 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-border flex flex-col">
+                                <div className="flex-grow">
+                                    <h3 className="text-2xl font-bold text-primary">{routine.name}</h3>
+                                    <p className="text-text-secondary text-sm mb-4">{totalExercises} {totalExercises === 1 ? 'exercise' : 'exercises'} across {routine.variants.length} {routine.variants.length === 1 ? 'variant' : 'variants'}</p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                                    <button onClick={() => handleStartWorkout(routine)} className="flex-1 btn btn-secondary">Start Workout ({nextVariantName})</button>
+                                    <button onClick={() => { setIsEditing(routine); setActiveVariantIndex(0); }} className="btn btn-ghost">Edit</button>
+                                    <button onClick={() => handleDeleteRoutine(routine.id)} className="btn btn-danger">Delete</button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
             
-            <button onClick={handleCreateNew} className="w-full btn btn-primary text-lg mt-6">
-                Create New Routine
-            </button>
+            {/* DIVIDER */}
+            <div className="border-t-2 border-dashed border-border my-8"></div>
+
+            {/* TEMPLATES SECTION */}
+            <div>
+                <h2 className="text-3xl font-bold mb-2 text-center">Routine Templates</h2>
+                <p className="text-center text-text-secondary mb-6 max-w-lg mx-auto">Kickstart your fitness journey by adding one of our expertly crafted routines.</p>
+                
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {DEFAULT_ROUTINES.map(routine => {
+                        const isAdded = addedTemplateIds.has(routine.id);
+                        const totalExercises = routine.variants.reduce((sum, v) => sum + v.exercises.length, 0);
+                        return (
+                            <div key={routine.id} className="bg-surface p-4 rounded-3xl shadow-lg border border-border flex flex-col justify-between">
+                                <div>
+                                    <h3 className="text-2xl font-bold text-secondary">{routine.name}</h3>
+                                    <p className="text-text-secondary text-sm mb-4">{totalExercises} {totalExercises === 1 ? 'exercise' : 'exercises'} across {routine.variants.length} {routine.variants.length === 1 ? 'variant' : 'variants'}</p>
+                                    <ul className="text-sm text-text-secondary space-y-1 list-disc list-inside mb-4">
+                                        {routine.variants[0].exercises.slice(0,3).map(ex => {
+                                            const exercise = findExerciseById(ex.exerciseId);
+                                            return <li key={ex.exerciseId} className="truncate">{exercise?.name}</li>
+                                        })}
+                                        {routine.variants[0].exercises.length > 3 && <li>...and more</li>}
+                                    </ul>
+                                </div>
+                                <button
+                                    onClick={() => !isAdded && handleAddDefaultRoutine(routine)}
+                                    disabled={isAdded}
+                                    className={`w-full btn transition-all duration-300 ${
+                                        isAdded ? 'btn-ghost opacity-60 cursor-not-allowed' : 'btn-secondary'
+                                    }`}
+                                >
+                                    {isAdded ? (
+                                        <>
+                                            <CheckIcon className="w-5 h-5" />
+                                            <span>Added</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <PlusIcon className="w-5 h-5" />
+                                            <span>Add to My Routines</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 };
