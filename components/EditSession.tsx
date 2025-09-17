@@ -227,42 +227,44 @@ const EditSession: React.FC<EditSessionProps> = ({ session, onFinish }) => {
                 </header>
 
                 <main className="px-4 space-y-4 mt-4 max-w-3xl mx-auto">
-                    {editedExercises.map((pEx, exIndex) => (
-                        <div key={pEx.exerciseId + exIndex} data-drag-item="true" draggable onDragStart={(e) => handleDragStart(e, exIndex)} onDragOver={(e) => e.preventDefault()} onDragEnter={() => handleDragEnter(exIndex)} onDragLeave={() => setDragOverIndex(null)} onDrop={() => handleDrop(exIndex)} onDragEnd={cleanupDragState}
-                            className={`bg-surface border border-border p-4 rounded-2xl shadow-md transition-all duration-200 ${draggedIndex === exIndex ? 'opacity-50 shadow-2xl scale-105' : ''} ${dragOverIndex === exIndex && dragOverIndex !== draggedIndex ? 'outline-2 outline-dashed outline-primary -outline-offset-2' : ''}`}>
-                            <div className="flex justify-between items-center mb-3">
-                                <div className="flex items-center gap-3">
-                                    <div onTouchStart={(e) => handleTouchStart(e, exIndex)} className="cursor-grab p-2 -ml-2"><DragHandleIcon className="w-6 h-6 text-text-secondary flex-shrink-0" /></div>
-                                    <h3 className="text-lg font-bold">{pEx.exerciseName}</h3>
+                    {editedExercises.map((pEx, exIndex) => {
+                        return (
+                            <div key={pEx.exerciseId + exIndex} data-drag-item="true" draggable onDragStart={(e) => handleDragStart(e, exIndex)} onDragOver={(e) => e.preventDefault()} onDragEnter={() => handleDragEnter(exIndex)} onDragLeave={() => setDragOverIndex(null)} onDrop={() => handleDrop(exIndex)} onDragEnd={cleanupDragState}
+                                className={`bg-surface border border-border p-4 rounded-2xl shadow-md transition-all duration-200 ${draggedIndex === exIndex ? 'opacity-50 shadow-2xl scale-105' : ''} ${dragOverIndex === exIndex && dragOverIndex !== draggedIndex ? 'outline-2 outline-dashed outline-primary -outline-offset-2' : ''}`}>
+                                <div className="flex justify-between items-center mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div onTouchStart={(e) => handleTouchStart(e, exIndex)} className="cursor-grab p-2 -ml-2"><DragHandleIcon className="w-6 h-6 text-text-secondary flex-shrink-0" /></div>
+                                        <h3 className="text-lg font-bold">{pEx.exerciseName}</h3>
+                                    </div>
+                                    <button onClick={() => removeExercise(exIndex)} className="text-danger hover:brightness-125 transition-colors text-sm font-semibold">Remove</button>
                                 </div>
-                                <button onClick={() => removeExercise(exIndex)} className="text-danger hover:brightness-125 transition-colors text-sm font-semibold">Remove</button>
+                                <div className="mb-3">
+                                    <div className="relative">
+                                        <textarea
+                                            value={pEx.notes || ''}
+                                            onChange={(e) => handleNoteChange(exIndex, e.target.value)}
+                                            maxLength={150}
+                                            placeholder="Add a note..."
+                                            className="w-full bg-input border border-border p-2 rounded-lg text-sm resize-none focus:border-secondary transition-colors"
+                                            rows={2}
+                                        />
+                                        <span className="absolute bottom-2 right-2 text-xs text-text-secondary">{pEx.notes?.length || 0}/150</span>
+                                    </div>
+                                </div>
+                                {pEx.sets.map((set, setIndex) => (
+                                    <div key={set.id} className="flex items-center gap-2 mb-2">
+                                        <span className="font-bold text-text-secondary w-8 text-center">{setIndex + 1}</span>
+                                        <input type="number" min="0" max="1000" value={set.weight} onChange={e => updateSet(exIndex, setIndex, 'weight', e.target.value)} onFocus={handleFocus} className="w-full bg-input border border-border p-2 rounded text-center" placeholder="kg" />
+                                        <span className="text-text-secondary text-sm">kg</span>
+                                        <input type="number" min="1" max="50" value={set.reps} onChange={e => updateSet(exIndex, setIndex, 'reps', e.target.value)} onFocus={handleFocus} className="w-full bg-input border border-border p-2 rounded text-center" placeholder="Reps" />
+                                        <span className="text-text-secondary text-sm">reps</span>
+                                        <button onClick={() => removeSet(exIndex, setIndex)} className="text-danger text-2xl font-light hover:brightness-125 w-8 text-center">×</button>
+                                    </div>
+                                ))}
+                                <button onClick={() => addSet(exIndex)} className="w-full bg-secondary/20 text-secondary p-2 rounded-lg mt-2 font-semibold hover:bg-secondary/30 transition-colors text-sm">Add Set</button>
                             </div>
-                            <div className="mb-3">
-                                <div className="relative">
-                                    <textarea
-                                        value={pEx.notes || ''}
-                                        onChange={(e) => handleNoteChange(exIndex, e.target.value)}
-                                        maxLength={150}
-                                        placeholder="Add a note..."
-                                        className="w-full bg-input border border-border p-2 rounded-lg text-sm resize-none focus:border-secondary transition-colors"
-                                        rows={2}
-                                    />
-                                    <span className="absolute bottom-2 right-2 text-xs text-text-secondary">{pEx.notes?.length || 0}/150</span>
-                                </div>
-                            </div>
-                            {pEx.sets.map((set, setIndex) => (
-                                <div key={set.id} className="flex items-center gap-2 mb-2">
-                                    <span className="font-bold text-text-secondary w-8 text-center">{setIndex + 1}</span>
-                                    <input type="number" min="0" max="1000" value={set.weight} onChange={e => updateSet(exIndex, setIndex, 'weight', e.target.value)} onFocus={handleFocus} className="w-full bg-input border border-border p-2 rounded text-center" placeholder="kg" />
-                                    <span className="text-text-secondary text-sm">kg</span>
-                                    <input type="number" min="1" max="50" value={set.reps} onChange={e => updateSet(exIndex, setIndex, 'reps', e.target.value)} onFocus={handleFocus} className="w-full bg-input border border-border p-2 rounded text-center" placeholder="Reps" />
-                                    <span className="text-text-secondary text-sm">reps</span>
-                                    <button onClick={() => removeSet(exIndex, setIndex)} className="text-danger text-2xl font-light hover:brightness-125 w-8 text-center">×</button>
-                                </div>
-                            ))}
-                            <button onClick={() => addSet(exIndex)} className="w-full bg-secondary/20 text-secondary p-2 rounded-lg mt-2 font-semibold hover:bg-secondary/30 transition-colors text-sm">Add Set</button>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </main>
             </div>
 

@@ -6,6 +6,10 @@ import DragHandleIcon from './icons/DragHandleIcon';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import CheckIcon from './icons/CheckIcon';
+import PushIcon from './icons/PushIcon';
+import PullIcon from './icons/PullIcon';
+import LegsDayIcon from './icons/LegsDayIcon';
+import DumbbellIcon from './icons/DumbbellIcon';
 
 interface RoutinesProps {
     onStartWorkout: (workout: { routine: Routine, variant: RoutineVariant }) => void;
@@ -127,6 +131,20 @@ const DEFAULT_ROUTINES: Routine[] = [
         ]
     }
 ];
+
+const getRoutineIcon = (name: string) => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('push')) {
+        return <PushIcon className="w-8 h-8 text-secondary flex-shrink-0" />;
+    }
+    if (lowerName.includes('pull')) {
+        return <PullIcon className="w-8 h-8 text-secondary flex-shrink-0" />;
+    }
+    if (lowerName.includes('leg')) {
+        return <LegsDayIcon className="w-8 h-8 text-secondary flex-shrink-0" />;
+    }
+    return <DumbbellIcon className="w-8 h-8 text-text-secondary flex-shrink-0" />;
+};
 
 const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
     const [routines, setRoutines] = useLocalStorage<Routine[]>('routines', []);
@@ -598,8 +616,11 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
                         return (
                             <div key={routine.id} className="bg-surface p-4 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-border flex flex-col">
                                 <div className="flex-grow">
-                                    <h3 className="text-2xl font-bold text-primary">{routine.name}</h3>
-                                    <p className="text-text-secondary text-sm mb-4">{totalExercises} {totalExercises === 1 ? 'exercise' : 'exercises'} across {routine.variants.length} {routine.variants.length === 1 ? 'variant' : 'variants'}</p>
+                                     <div className="flex items-center gap-3">
+                                        {getRoutineIcon(routine.name)}
+                                        <h3 className="text-2xl font-bold text-primary truncate">{routine.name}</h3>
+                                    </div>
+                                    <p className="text-text-secondary text-sm my-2">{totalExercises} {totalExercises === 1 ? 'exercise' : 'exercises'} across {routine.variants.length} {routine.variants.length === 1 ? 'variant' : 'variants'}</p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-2 mt-4">
                                     <button onClick={() => handleStartWorkout(routine)} className="flex-1 btn btn-secondary">Start Workout ({nextVariantName})</button>
@@ -627,8 +648,11 @@ const Routines: React.FC<RoutinesProps> = ({ onStartWorkout }) => {
                         return (
                             <div key={routine.id} className="bg-surface p-4 rounded-3xl shadow-lg border border-border flex flex-col justify-between">
                                 <div>
-                                    <h3 className="text-2xl font-bold text-secondary">{routine.name}</h3>
-                                    <p className="text-text-secondary text-sm mb-4">{totalExercises} {totalExercises === 1 ? 'exercise' : 'exercises'} across {routine.variants.length} {routine.variants.length === 1 ? 'variant' : 'variants'}</p>
+                                    <div className="flex items-center gap-3">
+                                        {getRoutineIcon(routine.name)}
+                                        <h3 className="text-2xl font-bold text-secondary truncate">{routine.name}</h3>
+                                    </div>
+                                    <p className="text-text-secondary text-sm my-2">{totalExercises} {totalExercises === 1 ? 'exercise' : 'exercises'} across {routine.variants.length} {routine.variants.length === 1 ? 'variant' : 'variants'}</p>
                                     <ul className="text-sm text-text-secondary space-y-1 list-disc list-inside mb-4">
                                         {routine.variants[0].exercises.slice(0,3).map(ex => {
                                             const exercise = findExerciseById(ex.exerciseId);
